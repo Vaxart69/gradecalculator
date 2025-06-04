@@ -25,13 +25,15 @@ class _HomescreenState extends State<Homescreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () async {
-            await context.read<AuthProvider>().signOut();
+            
             if (context.mounted){
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (context) => const StartingPage()),
               );
             }
+
+            await context.read<AuthProvider>().signOut();
               
           },
         ),

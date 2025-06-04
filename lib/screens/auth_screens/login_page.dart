@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/gestures.dart';
-
+import 'package:gradecalculator/providers/auth_provider.dart';
+import 'package:gradecalculator/screens/home_screen/homescreen.dart';
+import 'package:provider/provider.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -75,10 +77,7 @@ class _LoginPageState extends State<LoginPage> {
                       color: Color(0xFF6200EE),
                       decoration: TextDecoration.underline,
                     ),
-                    recognizer: forgotPasswordRecognizer
-                      ..onTap = () {
-                        
-                      },
+                    recognizer: forgotPasswordRecognizer..onTap = () {},
                   ),
                 ),
 
@@ -88,34 +87,60 @@ class _LoginPageState extends State<LoginPage> {
                   width: size.width * 0.8,
                   height: size.height * 0.06,
                   child: ElevatedButton(
-                    onPressed: () {
-                      // Navigator.of(context).push(
-                      //   PageRouteBuilder(
-                      //     pageBuilder:
-                      //         (context, animation, secondaryAnimation) =>
-                      //             const LoginPage(),
-                      //     transitionsBuilder: (
-                      //       context,
-                      //       animation,
-                      //       secondaryAnimation,
-                      //       child,
-                      //     ) {
-                      //       const begin = Offset(1.0, 0.0);
-                      //       const end = Offset.zero;
-                      //       const curve = Curves.easeInOut;
+                    onPressed: () async {
+                      final email = emailController.text.trim();
+                      final password = passwordController.text.trim();
 
-                      //       var tween = Tween(
-                      //         begin: begin,
-                      //         end: end,
-                      //       ).chain(CurveTween(curve: curve));
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder:
+                            (context) => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                      );
 
-                      //       return SlideTransition(
-                      //         position: animation.drive(tween),
-                      //         child: child,
-                      //       );
-                      //     },
-                      //   ),
-                      // );
+                      String? result = await context
+                          .read<AuthProvider>()
+                          .signIn(email, password);
+
+                      if (context.mounted) Navigator.pop(context);
+
+                      if (result != null) {
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text(result)));
+                      } else {
+                        // Success: Go to homescreen
+                        Navigator.pushReplacement(
+                          context,
+                          PageRouteBuilder(
+                            pageBuilder:
+                                (context, animation, secondaryAnimation) =>
+                                    const Homescreen(),
+                            transitionsBuilder: (
+                              context,
+                              animation,
+                              secondaryAnimation,
+                              child,
+                            ) {
+                              const begin = Offset(1.0, 0.0);
+                              const end = Offset.zero;
+                              const curve = Curves.easeInOut;
+
+                              var tween = Tween(
+                                begin: begin,
+                                end: end,
+                              ).chain(CurveTween(curve: curve));
+
+                              return SlideTransition(
+                                position: animation.drive(tween),
+                                child: child,
+                              );
+                            },
+                          ),
+                        );
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color(0xFF6200EE),
