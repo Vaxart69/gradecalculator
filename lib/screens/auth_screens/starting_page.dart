@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -116,7 +117,7 @@ class _StartingPageState extends State<StartingPage> {
                     // Log In Button
                     SizedBox(
                       width: size.width * 0.8,
-                      height: size.height * 0.08,
+                      height: size.height * 0.06,
                       child: ElevatedButton(
                         onPressed: () {
                           Navigator.of(context).push(
@@ -148,7 +149,7 @@ class _StartingPageState extends State<StartingPage> {
                           );
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
+                          backgroundColor: Color(0xFF6200EE),
                           elevation: 8,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(50),
@@ -158,7 +159,7 @@ class _StartingPageState extends State<StartingPage> {
                           "Log In",
                           style: GoogleFonts.poppins(
                             fontSize: size.height * 0.020,
-                            color: Color(0xFF050505),
+                            color: Colors.white,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -168,7 +169,7 @@ class _StartingPageState extends State<StartingPage> {
                     // Sign Up Button
                     SizedBox(
                       width: size.width * 0.8,
-                      height: size.height * 0.08,
+                      height: size.height * 0.06,
                       child: ElevatedButton(
                         onPressed: () {
                           Navigator.of(context).push(
@@ -200,20 +201,87 @@ class _StartingPageState extends State<StartingPage> {
                           );
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF6200EE),
+                          backgroundColor: Color(0xFFFFFFFF),
                           elevation: 8,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(50),
                           ),
                         ),
-                        child: Text(
-                          "Sign Up",
-                          style: GoogleFonts.poppins(
-                            fontSize: size.height * 0.020,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Image.asset(
+                              'assets/google_icon.png',
+                              height: size.height * 0.040,
+                            ),
+                            SizedBox(width: 12),
+                            Text(
+                              "Sign in with Google",
+                              style: GoogleFonts.poppins(
+                                fontSize: size.height * 0.020,
+                                color: Color(0xFF050505),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
+                      ),
+                    ),
+
+                    SizedBox(height: size.height * 0.050),
+
+                    RichText(
+                      text: TextSpan(
+                        style: GoogleFonts.poppins(
+                          fontSize: size.height * 0.018,
+                          color: Colors.white,
+                        ),
+                        children: [
+                          const TextSpan(text: "Don't have an account? "),
+                          TextSpan(
+                            text: "Create an account",
+                            style: GoogleFonts.poppins(
+                              color: Color(0xFF6200EE),
+                              fontWeight: FontWeight.normal,
+                              
+                            ),
+                            recognizer:
+                                TapGestureRecognizer()
+                                  ..onTap = () {
+                                    Navigator.of(context).push(
+                                      PageRouteBuilder(
+                                        pageBuilder:
+                                            (
+                                              context,
+                                              animation,
+                                              secondaryAnimation,
+                                            ) => const SignupPage(),
+                                        transitionsBuilder: (
+                                          context,
+                                          animation,
+                                          secondaryAnimation,
+                                          child,
+                                        ) {
+                                          const begin = Offset(1.0, 0.0);
+                                          const end = Offset.zero;
+                                          const curve = Curves.easeInOut;
+
+                                          var tween = Tween(
+                                            begin: begin,
+                                            end: end,
+                                          ).chain(CurveTween(curve: curve));
+
+                                          return SlideTransition(
+                                            position: animation.drive(tween),
+                                            child: child,
+                                          );
+                                        },
+                                      ),
+                                    );
+                                  },
+                          ),
+                        ],
                       ),
                     ),
                   ],

@@ -6,8 +6,8 @@ class AcademicYear{
   String userId;
   String academicYear;
   String? totalUnits;
-
   List<Sem?> semesters;
+  
   AcademicYear({
     required this.acadeicyearId,
     required this.userId,
