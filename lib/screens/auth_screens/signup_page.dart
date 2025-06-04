@@ -101,6 +101,9 @@ class _SignupPageState extends State<SignupPage> {
                     height: size.height * 0.06,
                   ),
 
+
+                  
+
                 SizedBox(
                   width: size.width * 0.8,
                   height: size.height * 0.06,
