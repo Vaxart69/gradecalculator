@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:gradecalculator/providers/auth_provider.dart';
+import 'package:gradecalculator/screens/home_screen/homescreen.dart';
+import 'package:provider/provider.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -40,9 +43,10 @@ class _SignupPageState extends State<SignupPage> {
         elevation: 0, // Optional: flat look
         iconTheme: IconThemeData(color: Color(0xFF6200EE)),
       ),
-      resizeToAvoidBottomInset: true, 
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: SingleChildScrollView( // Wrap with scroll view
+        child: SingleChildScrollView(
+          // Wrap with scroll view
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: size.width * 0.08),
             child: Column(
@@ -83,7 +87,10 @@ class _SignupPageState extends State<SignupPage> {
                   controller: usernameController,
                 ),
 
-                CustomTextFormField(label: "Email", controller: emailController),
+                CustomTextFormField(
+                  label: "Email",
+                  controller: emailController,
+                ),
                 CustomTextFormField(
                   label: "Password",
                   controller: passwordController,
@@ -96,46 +103,56 @@ class _SignupPageState extends State<SignupPage> {
                   obscureText: true,
                 ),
 
-                SizedBox(
-                   
-                    height: size.height * 0.06,
-                  ),
-
-
-                  
+                SizedBox(height: size.height * 0.06),
 
                 SizedBox(
                   width: size.width * 0.8,
                   height: size.height * 0.06,
                   child: ElevatedButton(
-                    onPressed: () {
-                      // Navigator.of(context).push(
-                      //   PageRouteBuilder(
-                      //     pageBuilder:
-                      //         (context, animation, secondaryAnimation) =>
-                      //             const LoginPage(),
-                      //     transitionsBuilder: (
-                      //       context,
-                      //       animation,
-                      //       secondaryAnimation,
-                      //       child,
-                      //     ) {
-                      //       const begin = Offset(1.0, 0.0);
-                      //       const end = Offset.zero;
-                      //       const curve = Curves.easeInOut;
+                    onPressed: () async {
+                      String email = emailController.text.trim();
+                      String password = passwordController.text.trim();
+                      String firstName = firstNameController.text.trim();
+                      String lastName = lastNameController.text.trim();
+                      String username = usernameController.text.trim();
 
-                      //       var tween = Tween(
-                      //         begin: begin,
-                      //         end: end,
-                      //       ).chain(CurveTween(curve: curve));
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder:
+                            (context) => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                      );
 
-                      //       return SlideTransition(
-                      //         position: animation.drive(tween),
-                      //         child: child,
-                      //       );
-                      //     },
-                      //   ),
-                      // );
+                      String? result = await context
+                          .read<AuthProvider>()
+                          .signUp(
+                            email: email,
+                            password: password,
+                            firstName: firstName,
+                            lastName: lastName,
+                            username: username,
+                          );
+
+                      if (context.mounted) Navigator.pop(context);
+
+                      if (result != null) {
+                        // Show error as a snackbar
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text(result)));
+                      } else {
+                        
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const Homescreen(),
+                          ),
+                        );
+
+                        print("Sign up successful, navigate to home page");
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color(0xFF6200EE),
@@ -145,7 +162,6 @@ class _SignupPageState extends State<SignupPage> {
                       ),
                     ),
 
-                  
                     child: Text(
                       "Sign Up",
                       style: GoogleFonts.poppins(
