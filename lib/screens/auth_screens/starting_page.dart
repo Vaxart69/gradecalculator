@@ -17,9 +17,9 @@ class _StartingPageState extends State<StartingPage> {
   bool _startAnimation = false;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _startAnimation = false;
+  void initState() {
+    super.initState();
+    // Trigger animation only once, after the first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         setState(() {
@@ -234,7 +234,7 @@ class _StartingPageState extends State<StartingPage> {
                     RichText(
                       text: TextSpan(
                         style: GoogleFonts.poppins(
-                          fontSize: size.height * 0.018,
+                          fontSize: size.height * 0.015,
                           color: Colors.white,
                         ),
                         children: [
