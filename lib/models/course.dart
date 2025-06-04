@@ -1,3 +1,4 @@
+import 'package:gradecalculator/models/components.dart';
 import 'package:gradecalculator/models/grade_range.dart';
 
 class Course {
@@ -8,6 +9,7 @@ class Course {
   final String units;
   final String? instructor;
   final List<GradeRange> gradingSystem;
+  final List<Component?> components;
 
   Course({
     required this.courseId,
@@ -16,6 +18,7 @@ class Course {
     required this.courseCode,
     required this.units,
     this.instructor,
-    this.gradingSystem = const [],
+    required this.gradingSystem,
+    this.components = const [],
   });
 }

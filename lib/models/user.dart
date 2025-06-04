@@ -1,4 +1,5 @@
-import 'package:gradecalculator/models/sem.dart';
+import 'package:gradecalculator/models/academicyear.dart';
+
 
 class User {
   final String userId;
@@ -6,7 +7,7 @@ class User {
   final String firstname;
   final String lastname;
   final String email;
-  final List<Sem?> sems;
+  final List<AcademicYear?> academicYears;
 
   User({
     required this.userId,
@@ -14,7 +15,7 @@ class User {
     required this.firstname,
     required this.lastname,
     required this.email,
-    this.sems = const [],
+    this.academicYears = const [],
   });
 
 }
