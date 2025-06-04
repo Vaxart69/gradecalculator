@@ -19,7 +19,7 @@ class _StartingPageState extends State<StartingPage> {
   @override
   void initState() {
     super.initState();
-    // Trigger animation only once, after the first frame
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         setState(() {

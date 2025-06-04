@@ -1,13 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:gradecalculator/screens/home_screen/homescreen.dart';
+import 'package:provider/provider.dart';
+import 'package:gradecalculator/providers/auth_provider.dart';
 import 'package:gradecalculator/screens/auth_screens/starting_page.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart'; 
 
-void main() {
-  runApp(const GradeCalculator());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform, 
+  );
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
-class GradeCalculator extends StatelessWidget {
-  const GradeCalculator({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -15,13 +31,21 @@ class GradeCalculator extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Grade Calculator',
       theme: ThemeData(
-        scaffoldBackgroundColor: const Color(0xFF121212), // Set global background color
+        scaffoldBackgroundColor: const Color(0xFF121212),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF121212), // AppBar background
+          backgroundColor: Color(0xFF121212),
         ),
-        textTheme: GoogleFonts.poppinsTextTheme(),
+        textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
       ),
-      home: StartingPage(),
+      home: Consumer<AuthProvider>(
+        builder: (context, authProvider, _) {
+          if (authProvider.appUser != null) {
+            return Homescreen();
+          } else {
+            return StartingPage();
+          }
+        },
+      ),
     );
   }
 }
