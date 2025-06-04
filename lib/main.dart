@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
+import 'package:gradecalculator/screens/auth_screens/starting_page.dart';
 
 void main() {
   runApp(const GradeCalculator());
@@ -28,7 +29,7 @@ class GradeCalculator extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFF121212),
         textTheme: GoogleFonts.poppinsTextTheme(),
       ),
-      // TODO: Set your home: property here, e.g. home: StartingPage(),
+      home: StartingPage(),
     );
   }
 }
