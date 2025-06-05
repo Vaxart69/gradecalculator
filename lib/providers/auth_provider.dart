@@ -17,6 +17,7 @@ class AuthProvider with ChangeNotifier {
 
   // Listen to auth state changes
   AuthProvider() {
+    _isLoading = true;
     _authApi.getUser().listen((user) async {
       _isLoading = true;
       notifyListeners();

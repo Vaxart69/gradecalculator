@@ -8,7 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:gradecalculator/providers/auth_provider.dart';
 import 'package:gradecalculator/screens/auth_screens/starting_page.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart'; 
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,20 +17,18 @@ void main() async {
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       systemNavigationBarColor: Colors.transparent,
-      systemNavigationBarIconBrightness: Brightness.light, 
-      statusBarColor: Colors.transparent, 
-      statusBarIconBrightness: Brightness.light, 
+      systemNavigationBarIconBrightness: Brightness.light,
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
     ),
   );
 
   await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform, 
+    options: DefaultFirebaseOptions.currentPlatform,
   );
   runApp(
     MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
-      ],
+      providers: [ChangeNotifierProvider(create: (_) => AuthProvider())],
       child: const MyApp(),
     ),
   );
@@ -46,23 +44,21 @@ class MyApp extends StatelessWidget {
       title: 'Grade Calculator',
       theme: ThemeData(
         scaffoldBackgroundColor: const Color(0xFF121212),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF121212),
-        ),
+        appBarTheme: const AppBarTheme(backgroundColor: Color(0xFF121212)),
         textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
       ),
       home: Consumer<AuthProvider>(
-  builder: (context, authProvider, _) {
-    if (authProvider.isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (authProvider.appUser != null) {
-      return MainScaffold();
-    } else {
-      return StartingPage();
-    }
-  },
-),
+        builder: (context, authProvider, _) {
+          if (authProvider.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (authProvider.appUser != null) {
+            return MainScaffold();
+          } else {
+            return StartingPage();
+          }
+        },
+      ),
     );
   }
 }
