@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:gradecalculator/screens/home_screen/homescreen.dart';
+import 'package:gradecalculator/components/bottom_nar_bar.dart';
+import 'package:gradecalculator/components/mainscaffold.dart';
+import 'package:gradecalculator/screens/homescreen.dart';
 import 'package:provider/provider.dart';
 import 'package:gradecalculator/providers/auth_provider.dart';
 import 'package:gradecalculator/screens/auth_screens/starting_page.dart';
@@ -9,6 +12,17 @@ import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Make navigation bar transparent
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarIconBrightness: Brightness.light, 
+      statusBarColor: Colors.transparent, 
+      statusBarIconBrightness: Brightness.light, 
+    ),
+  );
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform, 
   );
@@ -38,14 +52,17 @@ class MyApp extends StatelessWidget {
         textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
       ),
       home: Consumer<AuthProvider>(
-        builder: (context, authProvider, _) {
-          if (authProvider.appUser != null) {
-            return Homescreen();
-          } else {
-            return StartingPage();
-          }
-        },
-      ),
+  builder: (context, authProvider, _) {
+    if (authProvider.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (authProvider.appUser != null) {
+      return MainScaffold();
+    } else {
+      return StartingPage();
+    }
+  },
+),
     );
   }
 }

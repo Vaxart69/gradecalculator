@@ -40,6 +40,7 @@ class FirebaseAuthAPI {
         firstname: firstName,
         lastname: lastName,
         email: email,
+        courses: const [],
       );
 
       // Save user to Firestore

@@ -12,16 +12,20 @@ class AuthProvider with ChangeNotifier {
   // Expose Firebase user and app user
   User? get firebaseUser => _firebaseUser;
   model.User? get appUser => _appUser;
+  bool _isLoading = true;
+  bool get isLoading => _isLoading;
 
   // Listen to auth state changes
   AuthProvider() {
     _authApi.getUser().listen((user) async {
-      _firebaseUser = user;
+      _isLoading = true;
+      notifyListeners();
       if (user != null) {
         _appUser = await _authApi.getUserInfo(user.uid);
       } else {
         _appUser = null;
       }
+      _isLoading = false;
       notifyListeners();
     });
   }
@@ -69,7 +73,10 @@ class AuthProvider with ChangeNotifier {
   // Update user info
   Future<String?> updateUserInfo(Map<String, dynamic> updatedData) async {
     if (_firebaseUser == null) return "No user signed in";
-    final result = await _authApi.updateUserInfo(_firebaseUser!.uid, updatedData);
+    final result = await _authApi.updateUserInfo(
+      _firebaseUser!.uid,
+      updatedData,
+    );
     if (result == null) {
       _appUser = await _authApi.getUserInfo(_firebaseUser!.uid);
       notifyListeners();

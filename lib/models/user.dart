@@ -1,5 +1,4 @@
-import 'package:gradecalculator/models/academicyear.dart';
-
+import 'package:gradecalculator/models/course.dart';
 
 class User {
   final String userId;
@@ -7,7 +6,7 @@ class User {
   final String firstname;
   final String lastname;
   final String email;
-  final List<AcademicYear?> academicYears;
+  final List<Course> courses;
 
   User({
     required this.userId,
@@ -15,7 +14,7 @@ class User {
     required this.firstname,
     required this.lastname,
     required this.email,
-    this.academicYears = const [],
+    this.courses = const [],
   });
 
   factory User.fromMap(Map<String, dynamic> map) => User(
@@ -24,10 +23,11 @@ class User {
         firstname: map['firstname'] ?? '',
         lastname: map['lastname'] ?? '',
         email: map['email'] ?? '',
-        academicYears: map['academicYears'] != null
-            ? List<AcademicYear?>.from(
-                (map['academicYears'] as List)
-                    .map((e) => e == null ? null : AcademicYear.fromMap(e)))
+        courses: map['courses'] != null
+            ? List<Course>.from(
+                (map['courses'] as List)
+                    .where((e) => e != null)
+                    .map((e) => Course.fromMap(Map<String, dynamic>.from(e))))
             : [],
       );
 
@@ -37,6 +37,6 @@ class User {
         'firstname': firstname,
         'lastname': lastname,
         'email': email,
-        'academicYears': academicYears.map((e) => e?.toMap()).toList(),
+        'courses': courses.map((e) => e.toMap()).toList(),
       };
 }

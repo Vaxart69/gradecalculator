@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/gestures.dart';
+import 'package:gradecalculator/components/mainscaffold.dart';
 import 'package:gradecalculator/providers/auth_provider.dart';
-import 'package:gradecalculator/screens/home_screen/homescreen.dart';
+
 import 'package:provider/provider.dart';
 
 class LoginPage extends StatefulWidget {
@@ -108,16 +109,18 @@ class _LoginPageState extends State<LoginPage> {
 
                       if (result != null) {
                         ScaffoldMessenger.of(
+                          // ignore: use_build_context_synchronously
                           context,
                         ).showSnackBar(SnackBar(content: Text(result)));
                       } else {
                         // Success: Go to homescreen
                         Navigator.pushReplacement(
+                          // ignore: use_build_context_synchronously
                           context,
                           PageRouteBuilder(
                             pageBuilder:
                                 (context, animation, secondaryAnimation) =>
-                                    const Homescreen(),
+                                    const MainScaffold(),
                             transitionsBuilder: (
                               context,
                               animation,
