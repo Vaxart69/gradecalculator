@@ -1,13 +1,13 @@
 class GradeRange {
   final String rangeId;
-  final String courseId;
+  final String gradingSystemId; 
   final int min;
   final int max;
   final double grade; 
 
   GradeRange({
     required this.rangeId,
-    required this.courseId,
+    required this.gradingSystemId,
     required this.min,
     required this.max,
     required this.grade,
@@ -15,7 +15,7 @@ class GradeRange {
 
   factory GradeRange.fromMap(Map<String, dynamic> map) => GradeRange(
         rangeId: map['rangeId'] ?? '',
-        courseId: map['courseId'] ?? '',
+        gradingSystemId: map['gradingSystemId'] ?? '',
         min: map['min'] ?? 0,
         max: map['max'] ?? 0,
         grade: (map['grade'] is int)
@@ -25,7 +25,7 @@ class GradeRange {
 
   Map<String, dynamic> toMap() => {
         'rangeId': rangeId,
-        'courseId': courseId,
+        'gradingSystemId': gradingSystemId,
         'min': min,
         'max': max,
         'grade': grade,

@@ -31,6 +31,16 @@ class AuthProvider with ChangeNotifier {
     });
   }
 
+  Future<void> fetchUser() async {
+    if (_firebaseUser != null) {
+      _appUser = await _authApi.getUserInfo(_firebaseUser!.uid);
+      notifyListeners();
+    }
+  }
+
+
+
+
   // Sign in
   Future<String?> signIn(String email, String password) async {
     final result = await _authApi.signIn(email, password);

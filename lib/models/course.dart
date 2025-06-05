@@ -1,5 +1,5 @@
 import 'package:gradecalculator/models/components.dart';
-import 'package:gradecalculator/models/grade_range.dart';
+import 'package:gradecalculator/models/grading_system.dart';
 
 class Course {
   final String courseId;
@@ -10,7 +10,7 @@ class Course {
   final String? instructor;
   final String academicYear; // e.g., "2024-2025"
   final String semester; // e.g., "1st Semester", "2nd Semester", "Summer"
-  final List<GradeRange> gradingSystem;
+  final GradingSystem gradingSystem; // Only one grading system per course
   final List<Component?> components;
 
   Course({
@@ -36,11 +36,12 @@ class Course {
         academicYear: map['academicYear'] ?? '',
         semester: map['semester'] ?? '',
         gradingSystem: map['gradingSystem'] != null
-            ? List<GradeRange>.from(
-                (map['gradingSystem'] as List)
-                    .where((e) => e != null)
-                    .map((e) => GradeRange.fromMap(Map<String, dynamic>.from(e))))
-            : [],
+            ? GradingSystem.fromMap(Map<String, dynamic>.from(map['gradingSystem']))
+            : GradingSystem(
+                gradingSystemId: '', // or generate a fallback id
+                courseId: map['courseId'] ?? '',
+                gradeRanges: [],
+              ),
         components: map['components'] != null
             ? List<Component?>.from(
                 (map['components'] as List)
@@ -57,7 +58,7 @@ class Course {
         'instructor': instructor,
         'academicYear': academicYear,
         'semester': semester,
-        'gradingSystem': gradingSystem.map((e) => e.toMap()).toList(),
+        'gradingSystem': gradingSystem.toMap(),
         'components': components.map((e) => e?.toMap()).toList(),
       };
 }
