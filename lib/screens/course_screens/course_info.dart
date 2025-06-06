@@ -412,60 +412,36 @@ class _CourseInfoState extends State<CourseInfo> {
             .doc(component.componentId),
       );
 
-      await batch.commit().timeout(_deleteTimeout);
+      await batch.commit();
 
-      // Update course document - remove component from array
-      await _updateCourseDocument(component);
-
-      // UPDATE PROVIDER - Remove component from local list
+      // IMPORTANT: Remove component from course document
       final courseProvider = Provider.of<CourseProvider>(context, listen: false);
       final selectedCourse = courseProvider.selectedCourse;
       
       if (selectedCourse != null) {
-        // Remove the deleted component from the components list
-        final updatedComponents = selectedCourse.components
-            .where((comp) => comp?.componentId != component.componentId)
-            .toList();
-        
-        // RECALCULATE GRADE after component removal
-        final calculatedGrade = await _calculateCourseGradeAfterDelete(updatedComponents);
-        
-        // Create updated course with new grade
-        final updatedCourse = Course(
-          courseId: selectedCourse.courseId,
-          userId: selectedCourse.userId,
-          courseName: selectedCourse.courseName,
-          courseCode: selectedCourse.courseCode,
-          units: selectedCourse.units,
-          instructor: selectedCourse.instructor,
-          academicYear: selectedCourse.academicYear,
-          semester: selectedCourse.semester,
-          gradingSystem: selectedCourse.gradingSystem,
-          components: updatedComponents,
-          grade: calculatedGrade, // Updated grade
-        );
-
-        // Update grade in Firebase
+        // Remove component from the course's components array in Firebase
         await FirebaseFirestore.instance
             .collection('courses')
             .doc(selectedCourse.courseId)
-            .update({'grade': calculatedGrade});
-
-        // Update provider with new course data
-        courseProvider.updateSelectedCourse(updatedCourse);
+            .update({
+          'components': FieldValue.arrayRemove([component.toMap()])
+        });
         
-        print("Course grade updated after deletion: ${calculatedGrade}%");
+        // Now let provider handle grade calculation and state updates
+        await courseProvider.removeComponentAndUpdateGrade(component.componentId);
       }
 
       if (mounted) {
         _hideLoadingDialog();
         _showSuccessMessage(component.componentName);
       }
+      
     } catch (e) {
       if (mounted) {
         _hideLoadingDialog();
         _showErrorMessage(e.toString());
       }
+      print("Error deleting component: $e");
     }
   }
 
