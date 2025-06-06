@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:gradecalculator/models/course.dart';
 import 'package:gradecalculator/providers/course_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:gradecalculator/screens/component_screen/add_component.dart';
@@ -93,7 +94,7 @@ class _CourseInfoState extends State<CourseInfo> {
       (course.courseCode, height * 0.04, FontWeight.w800, const Color(0xFF6200EE)),
       (course.courseName, height * 0.024, FontWeight.normal, Colors.white70),
       (course.instructor, height * 0.018, FontWeight.normal, Colors.white70),
-      ("${course.grade?.toStringAsFixed(1) ?? '0.0'}%", height * 0.018, FontWeight.normal, Colors.white70),
+      ("${course.grade?.toStringAsFixed(2) ?? '0.00'}%", height * 0.018, FontWeight.normal, Colors.white70),
     ];
 
     return Column(
@@ -178,7 +179,7 @@ class _CourseInfoState extends State<CourseInfo> {
               height * 0.010,
             ),
             title: Text(
-              "${component.componentName} (${component.weight.toStringAsFixed(1)}%)",
+              "${component.componentName} (${component.weight.toStringAsFixed(2)}%)",
               style: GoogleFonts.poppins(
                 color: Colors.white60,
                 fontWeight: FontWeight.bold,
@@ -267,7 +268,7 @@ class _CourseInfoState extends State<CourseInfo> {
           child: Align(
             alignment: Alignment.centerRight,
             child: Text(
-              "${totalScore.toStringAsFixed(1)}/${totalPossible.toStringAsFixed(1)}",
+              "${totalScore.toStringAsFixed(2)}/${totalPossible.toStringAsFixed(2)}",
               style: GoogleFonts.poppins(
                 color: Colors.white,
                 fontSize: height * 0.016,
@@ -297,7 +298,7 @@ class _CourseInfoState extends State<CourseInfo> {
             ),
           ),
           Text(
-            "${record.score.toStringAsFixed(1)}/${record.total.toStringAsFixed(1)}",
+            "${record.score.toStringAsFixed(2)}/${record.total.toStringAsFixed(2)}",
             style: GoogleFonts.poppins(
               color: Colors.white70,
               fontSize: height * 0.014,
@@ -413,8 +414,48 @@ class _CourseInfoState extends State<CourseInfo> {
 
       await batch.commit().timeout(_deleteTimeout);
 
-      // Update course document
+      // Update course document - remove component from array
       await _updateCourseDocument(component);
+
+      // UPDATE PROVIDER - Remove component from local list
+      final courseProvider = Provider.of<CourseProvider>(context, listen: false);
+      final selectedCourse = courseProvider.selectedCourse;
+      
+      if (selectedCourse != null) {
+        // Remove the deleted component from the components list
+        final updatedComponents = selectedCourse.components
+            .where((comp) => comp?.componentId != component.componentId)
+            .toList();
+        
+        // RECALCULATE GRADE after component removal
+        final calculatedGrade = await _calculateCourseGradeAfterDelete(updatedComponents);
+        
+        // Create updated course with new grade
+        final updatedCourse = Course(
+          courseId: selectedCourse.courseId,
+          userId: selectedCourse.userId,
+          courseName: selectedCourse.courseName,
+          courseCode: selectedCourse.courseCode,
+          units: selectedCourse.units,
+          instructor: selectedCourse.instructor,
+          academicYear: selectedCourse.academicYear,
+          semester: selectedCourse.semester,
+          gradingSystem: selectedCourse.gradingSystem,
+          components: updatedComponents,
+          grade: calculatedGrade, // Updated grade
+        );
+
+        // Update grade in Firebase
+        await FirebaseFirestore.instance
+            .collection('courses')
+            .doc(selectedCourse.courseId)
+            .update({'grade': calculatedGrade});
+
+        // Update provider with new course data
+        courseProvider.updateSelectedCourse(updatedCourse);
+        
+        print("Course grade updated after deletion: ${calculatedGrade}%");
+      }
 
       if (mounted) {
         _hideLoadingDialog();
@@ -470,5 +511,54 @@ class _CourseInfoState extends State<CourseInfo> {
         backgroundColor: Colors.red,
       ),
     );
+  }
+
+  Future<double> _calculateCourseGradeAfterDelete(List<Component?> components) async {
+    double totalGrade = 0.0;
+    
+    print("=== GRADE CALCULATION AFTER DELETE ===");
+    print("Components remaining: ${components.length}");
+    
+    for (final component in components) {
+      if (component == null) continue;
+      
+      // Get all records for this component from Firestore
+      final recordsSnapshot = await FirebaseFirestore.instance
+          .collection('records')
+          .where('componentId', isEqualTo: component.componentId)
+          .get();
+      
+      double totalScore = 0.0;
+      double totalPossible = 0.0;
+      
+      print("\n--- Component: ${component.componentName} ---");
+      print("Weight: ${component.weight.toStringAsFixed(2)}%");
+      print("Records found: ${recordsSnapshot.docs.length}");
+      
+      for (final doc in recordsSnapshot.docs) {
+        final record = Records.fromMap(doc.data());
+        totalScore += record.score;
+        totalPossible += record.total;
+        
+        print("  ${record.name}: ${record.score.toStringAsFixed(2)}/${record.total.toStringAsFixed(2)}");
+      }
+      
+      if (totalPossible > 0) {
+        double componentPercentage = (totalScore / totalPossible) * 100;
+        double weightedScore = componentPercentage * (component.weight / 100);
+        totalGrade += weightedScore;
+        
+        print("Total Score: ${totalScore.toStringAsFixed(2)}/${totalPossible.toStringAsFixed(2)} = ${componentPercentage.toStringAsFixed(2)}%");
+        print("Weighted Score: ${componentPercentage.toStringAsFixed(2)}% × ${component.weight.toStringAsFixed(2)}% = ${weightedScore.toStringAsFixed(2)}");
+      } else {
+        print("No valid records found for this component");
+      }
+    }
+    
+    print("\n=== FINAL GRADE AFTER DELETE ===");
+    print("Total Course Grade: ${totalGrade.toStringAsFixed(2)}%");
+    print("=============================\n");
+    
+    return double.parse(totalGrade.toStringAsFixed(2));
   }
 }

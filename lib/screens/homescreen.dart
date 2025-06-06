@@ -245,18 +245,13 @@ class _HomescreenState extends State<Homescreen> {
             ),
           ),
           TextSpan(
-            text:
-                course.gradingSystem.gradeRanges.isNotEmpty
-                    ? course.gradingSystem.gradeRanges.first.grade
-                        .toStringAsFixed(2)
-                    : '-',
+            text: course.grade != null 
+                ? "${course.grade!.toStringAsFixed(2)}%"
+                : "No grade yet",
             style: GoogleFonts.poppins(
-              color:
-                  course.gradingSystem.gradeRanges.isNotEmpty
-                      ? _getGradeColor(
-                        course.gradingSystem.gradeRanges.first.grade,
-                      )
-                      : Colors.white70,
+              color: course.grade != null 
+                  ? _getGradeColor(course.grade!)
+                  : Colors.white70,
               fontWeight: FontWeight.bold,
               fontSize: height * 0.014,
             ),

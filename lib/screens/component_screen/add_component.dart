@@ -7,7 +7,6 @@ import 'package:gradecalculator/models/course.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:gradecalculator/providers/course_provider.dart';
-
 class AddComponent extends StatefulWidget {
   const AddComponent({super.key});
 
@@ -93,6 +92,65 @@ class _AddComponentState extends State<AddComponent> {
     });
   }
 
+  Future<double> _calculateCourseGrade() async {
+    final courseProvider = Provider.of<CourseProvider>(context, listen: false);
+    final selectedCourse = courseProvider.selectedCourse;
+    
+    if (selectedCourse == null) {
+      print("No course selected for grade calculation");
+      return 0.0;
+    }
+
+    double totalGrade = 0.0;
+    
+    print("=== GRADE CALCULATION ===");
+    print("Course: ${selectedCourse.courseName}");
+    print("Components found: ${selectedCourse.components.length}");
+    
+    for (final component in selectedCourse.components) {
+      if (component == null) continue;
+      
+      // Get all records for this component from Firestore
+      final recordsSnapshot = await FirebaseFirestore.instance
+          .collection('records')
+          .where('componentId', isEqualTo: component.componentId)
+          .get();
+      
+      double totalScore = 0.0;
+      double totalPossible = 0.0;
+      
+      print("\n--- Component: ${component.componentName} ---");
+      print("Weight: ${component.weight}%");
+      print("Records found: ${recordsSnapshot.docs.length}");
+      
+      for (final doc in recordsSnapshot.docs) {
+        final record = Records.fromMap(doc.data()); // Remove the second parameter
+        totalScore += record.score;
+        totalPossible += record.total;
+        
+        print("  ${record.name}: ${record.score}/${record.total}");
+      }
+      
+      if (totalPossible > 0) {
+        double componentPercentage = (totalScore / totalPossible) * 100;
+        double weightedScore = componentPercentage * (component.weight / 100);
+        totalGrade += weightedScore;
+        
+        print("Total Score: $totalScore/$totalPossible = ${componentPercentage.toStringAsFixed(2)}%");
+        print("Weighted Score: ${componentPercentage.toStringAsFixed(2)}% × ${component.weight}% = ${weightedScore.toStringAsFixed(2)}");
+      } else {
+        print("No valid records found for this component");
+      }
+    }
+    
+    print("\n=== FINAL GRADE ===");
+    print("Total Course Grade: ${totalGrade.toStringAsFixed(2)}%");
+    print("========================\n");
+    
+    // Round the final grade to 2 decimal places before returning
+    return double.parse(totalGrade.toStringAsFixed(2));
+  }
+
   Future<void> _saveComponentToFirestore() async {
     final courseProvider = Provider.of<CourseProvider>(context, listen: false);
     final selectedCourse = courseProvider.selectedCourse;
@@ -143,8 +201,13 @@ class _AddComponentState extends State<AddComponent> {
         'components': FieldValue.arrayUnion([component.toMap()])
       });
 
-      // Update provider
+      // FIRST: Update the components list with the new component
       final updatedComponents = List<Component?>.from(selectedCourse.components)..add(component);
+      
+      // THEN: Calculate grade using the UPDATED components list
+      final calculatedGrade = await _calculateCourseGradeWithComponents(updatedComponents);
+      
+      // Create updated course with the new grade
       final updatedCourse = Course(
         courseId: selectedCourse.courseId,
         userId: selectedCourse.userId,
@@ -156,16 +219,74 @@ class _AddComponentState extends State<AddComponent> {
         semester: selectedCourse.semester,
         gradingSystem: selectedCourse.gradingSystem,
         components: updatedComponents,
-        grade: selectedCourse.grade,
+        grade: calculatedGrade,
       );
 
+      // Update the course grade in Firebase
+      await courseDocRef.update({
+        'grade': calculatedGrade,
+      });
+
+      // Update provider with new grade
       courseProvider.updateSelectedCourse(updatedCourse);
+      
       print("Component saved successfully!");
       print("${records.length} records saved to records collection!");
+      print("Course grade updated to: ${calculatedGrade}%");
       
     } catch (e) {
       print("Error saving component: $e");
     }
+  }
+
+  // Create a new method that takes components as parameter
+  Future<double> _calculateCourseGradeWithComponents(List<Component?> components) async {
+    double totalGrade = 0.0;
+    
+    print("=== GRADE CALCULATION WITH UPDATED COMPONENTS ===");
+    print("Components found: ${components.length}");
+    
+    for (final component in components) {
+      if (component == null) continue;
+      
+      // Get all records for this component from Firestore
+      final recordsSnapshot = await FirebaseFirestore.instance
+          .collection('records')
+          .where('componentId', isEqualTo: component.componentId)
+          .get();
+      
+      double totalScore = 0.0;
+      double totalPossible = 0.0;
+      
+      print("\n--- Component: ${component.componentName} ---");
+      print("Weight: ${component.weight}%");
+      print("Records found: ${recordsSnapshot.docs.length}");
+      
+      for (final doc in recordsSnapshot.docs) {
+        final record = Records.fromMap(doc.data());
+        totalScore += record.score;
+        totalPossible += record.total;
+        
+        print("  ${record.name}: ${record.score}/${record.total}");
+      }
+      
+      if (totalPossible > 0) {
+        double componentPercentage = (totalScore / totalPossible) * 100;
+        double weightedScore = componentPercentage * (component.weight / 100);
+        totalGrade += weightedScore;
+        
+        print("Total Score: $totalScore/$totalPossible = ${componentPercentage.toStringAsFixed(2)}%");
+        print("Weighted Score: ${componentPercentage.toStringAsFixed(2)}% × ${component.weight}% = ${weightedScore.toStringAsFixed(2)}");
+      } else {
+        print("No valid records found for this component");
+      }
+    }
+    
+    print("\n=== FINAL GRADE ===");
+    print("Total Course Grade: ${totalGrade.toStringAsFixed(2)}%");
+    print("========================\n");
+    
+    return double.parse(totalGrade.toStringAsFixed(2));
   }
 
   @override
