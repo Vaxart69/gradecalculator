@@ -119,17 +119,17 @@ class _AddCourseState extends State<AddCourse> {
     );
 
     final course = Course(
-      courseId: courseId,
-      userId: userId,
-      courseName: courseNameController.text,
-      courseCode: courseCodeController.text,
-      units: unitsController.text,
-      instructor: instructorController.text,
-      academicYear: academicYearController.text,
-      semester: selectedSemester ?? '',
-      gradingSystem: gradingSystem,
-      components: [],
-    );
+  courseId: courseId,
+  userId: userId,
+  courseName: courseNameController.text,
+  courseCode: courseCodeController.text,
+  units: unitsController.text,
+  instructor: instructorController.text,
+  academicYear: academicYearController.text,
+  semester: selectedSemester ?? '',
+  gradingSystem: gradingSystem,
+  components: [],
+);
 
     await docRef.set(course.toMap());
 
@@ -249,21 +249,21 @@ class _AddCourseState extends State<AddCourse> {
         CustField(
           label: "Course Code",
           icon: Icons.article,
-          hintText: "Enter course code",
+          hintText: "CMSC 23",
           controller: courseCodeController,
         ),
         SizedBox(height: height * 0.015),
         CustField(
           label: "Course Name",
           icon: Icons.menu_book,
-          hintText: "Enter course name",
+          hintText: "Mobile Programming",
           controller: courseNameController,
         ),
         SizedBox(height: height * 0.015),
         CustField(
-          label: "Academic Year (e.g. 2023-2024)",
+          label: "Academic Year",
           icon: Icons.calendar_month,
-          hintText: "Enter academic year",
+          hintText: "2024-2025",
           controller: academicYearController,
         ),
         SizedBox(height: height * 0.015),
@@ -272,14 +272,15 @@ class _AddCourseState extends State<AddCourse> {
         CustField(
           label: "Units",
           icon: Icons.format_list_numbered,
-          hintText: "Enter units",
+          hintText: "3",
           controller: unitsController,
+          keyboardType: TextInputType.number,
         ),
         SizedBox(height: height * 0.015),
         CustField(
           label: "Instructor (optional)",
           icon: Icons.person,
-          hintText: "Enter instructor name",
+          hintText: "Mx. Instructor",
           controller: instructorController,
         ),
       ],
@@ -320,9 +321,9 @@ class _AddCourseState extends State<AddCourse> {
           ),
           value: selectedSemester,
           hint: Text(
-            "Select semester",
+            "1st Semester",
             style: GoogleFonts.poppins(
-              color: Colors.black54,
+              color: Colors.black.withOpacity(0.3),
               fontWeight: FontWeight.w500,
               fontSize: height * 0.018,
             ),

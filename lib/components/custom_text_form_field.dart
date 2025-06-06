@@ -45,37 +45,29 @@ class CustField extends StatelessWidget {
             fontWeight: FontWeight.w500,
           ),
           decoration: InputDecoration(
-            prefixIcon: icon != null
-                ? Icon(icon, color: Colors.black54)
-                : null,
+            prefixIcon: icon != null ? Icon(icon, color: Colors.black54) : null,
             hintText: hintText,
             hintStyle: GoogleFonts.poppins(
-              color: Colors.black54,
+              color: Colors.black.withOpacity(0.3),
               fontWeight: FontWeight.w500,
             ),
             filled: true,
             fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 16,
+              horizontal: 12,
+            ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(
-                color: Color(0xFF121212),
-                width: 2,
-              ),
+              borderSide: const BorderSide(color: Color(0xFF121212), width: 2),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(
-                color: Color(0xFF6200EE),
-                width: 2,
-              ),
+              borderSide: const BorderSide(color: Color(0xFF6200EE), width: 2),
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(
-                color: Color(0xFF6200EE),
-                width: 2,
-              ),
+              borderSide: const BorderSide(color: Color(0xFF6200EE), width: 2),
             ),
           ),
         ),

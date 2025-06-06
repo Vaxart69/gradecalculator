@@ -12,6 +12,7 @@ class Course {
   final String semester; // e.g., "1st Semester", "2nd Semester", "Summer"
   final GradingSystem gradingSystem; // Only one grading system per course
   final List<Component?> components;
+  final double? grade;
 
   Course({
     required this.courseId,
@@ -24,6 +25,7 @@ class Course {
     required this.semester,
     required this.gradingSystem,
     this.components = const [],
+    this.grade = 0.0, // <-- Default to 0.0
   });
 
   factory Course.fromMap(Map<String, dynamic> map) => Course(
@@ -47,6 +49,11 @@ class Course {
                 (map['components'] as List)
                     .map((e) => e == null ? null : Component.fromMap(Map<String, dynamic>.from(e))))
             : [],
+        grade: map['grade'] != null
+            ? (map['grade'] is int
+                ? (map['grade'] as int).toDouble()
+                : map['grade'] as double)
+            : null, // <-- Add this line
       );
 
   Map<String, dynamic> toMap() => {
@@ -60,5 +67,6 @@ class Course {
         'semester': semester,
         'gradingSystem': gradingSystem.toMap(),
         'components': components.map((e) => e?.toMap()).toList(),
+        'grade': grade, // <-- Add this line
       };
 }
