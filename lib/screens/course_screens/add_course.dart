@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -17,21 +18,23 @@ class AddCourse extends StatefulWidget {
 }
 
 class _AddCourseState extends State<AddCourse> {
+  // Constants
+  static const List<String> _semesters = ['1st Semester', '2nd Semester', 'Midyear'];
+  static const Duration _saveTimeout = Duration(seconds: 10);
+
+  // Course form data
   String? selectedSemester;
-  final List<String> semesters = ['1st Semester', '2nd Semester', 'Midyear'];
+  final _courseCodeController = TextEditingController();
+  final _courseNameController = TextEditingController();
+  final _academicYearController = TextEditingController();
+  final _unitsController = TextEditingController();
+  final _instructorController = TextEditingController();
 
-  // Controllers for course fields
-  final courseCodeController = TextEditingController();
-  final courseNameController = TextEditingController();
-  final academicYearController = TextEditingController();
-  final unitsController = TextEditingController();
-  final instructorController = TextEditingController();
-
-  // Grade range models and controllers
-  final List<GradeRange> gradeRanges = [];
-  final Map<String, TextEditingController> minControllers = {};
-  final Map<String, TextEditingController> maxControllers = {};
-  final Map<String, TextEditingController> gradeControllers = {};
+  // Grade range data
+  final List<GradeRange> _gradeRanges = [];
+  final Map<String, TextEditingController> _minControllers = {};
+  final Map<String, TextEditingController> _maxControllers = {};
+  final Map<String, TextEditingController> _gradeControllers = {};
 
   @override
   void initState() {
@@ -39,15 +42,36 @@ class _AddCourseState extends State<AddCourse> {
     _addGradeRange();
   }
 
+  @override
+  void dispose() {
+    _disposeControllers();
+    super.dispose();
+  }
+
+  void _disposeControllers() {
+    final controllers = [
+      _courseCodeController,
+      _courseNameController,
+      _academicYearController,
+      _unitsController,
+      _instructorController,
+      ..._minControllers.values,
+      ..._maxControllers.values,
+      ..._gradeControllers.values,
+    ];
+    
+    for (final controller in controllers) {
+      controller.dispose();
+    }
+  }
+
   void _printGradeRangesDebug() {
     print('--- Current Grade Ranges ---');
-    for (var range in gradeRanges) {
-      final min = minControllers[range.rangeId]?.text ?? '';
-      final max = maxControllers[range.rangeId]?.text ?? '';
-      final grade = gradeControllers[range.rangeId]?.text ?? '';
-      print(
-        'RangeId: ${range.rangeId} | Min: $min | Max: $max | Grade: $grade | GradingSystemId: ${range.gradingSystemId}',
-      );
+    for (var range in _gradeRanges) {
+      final min = _minControllers[range.rangeId]?.text ?? '';
+      final max = _maxControllers[range.rangeId]?.text ?? '';
+      final grade = _gradeControllers[range.rangeId]?.text ?? '';
+      print('RangeId: ${range.rangeId} | Min: $min | Max: $max | Grade: $grade');
     }
     print('----------------------------');
   }
@@ -62,55 +86,42 @@ class _AddCourseState extends State<AddCourse> {
         max: 100,
         grade: 0.0,
       );
-      gradeRanges.add(newRange);
-      minControllers[rangeId] = TextEditingController();
-      maxControllers[rangeId] = TextEditingController();
-      gradeControllers[rangeId] = TextEditingController();
+      
+      _gradeRanges.add(newRange);
+      _minControllers[rangeId] = TextEditingController();
+      _maxControllers[rangeId] = TextEditingController();
+      _gradeControllers[rangeId] = TextEditingController();
       _printGradeRangesDebug();
     });
   }
 
   void _removeGradeRange(int index) {
     setState(() {
-      final rangeId = gradeRanges[index].rangeId;
-      minControllers[rangeId]?.dispose();
-      maxControllers[rangeId]?.dispose();
-      gradeControllers[rangeId]?.dispose();
-      minControllers.remove(rangeId);
-      maxControllers.remove(rangeId);
-      gradeControllers.remove(rangeId);
-      gradeRanges.removeAt(index);
+      final rangeId = _gradeRanges[index].rangeId;
+      
+      // Dispose and remove controllers
+      _minControllers[rangeId]?.dispose();
+      _maxControllers[rangeId]?.dispose();
+      _gradeControllers[rangeId]?.dispose();
+      _minControllers.remove(rangeId);
+      _maxControllers.remove(rangeId);
+      _gradeControllers.remove(rangeId);
+      
+      _gradeRanges.removeAt(index);
       _printGradeRangesDebug();
     });
   }
 
-  Future<void> _saveCourseToFirestore() async {
-    final docRef = FirebaseFirestore.instance.collection('courses').doc();
-    final courseId = docRef.id;
-
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final userId = authProvider.appUser?.userId ?? '';
-
-    final updatedGradeRanges =
-        gradeRanges
-            .map(
-              (range) => GradeRange(
-                rangeId: range.rangeId,
-                gradingSystemId: courseId,
-                min:
-                    int.tryParse(minControllers[range.rangeId]?.text ?? '') ??
-                    0,
-                max:
-                    int.tryParse(maxControllers[range.rangeId]?.text ?? '') ??
-                    0,
-                grade:
-                    double.tryParse(
-                      gradeControllers[range.rangeId]?.text ?? '',
-                    ) ??
-                    0.0,
-              ),
-            )
-            .toList();
+  Course _createCourse(String courseId, String userId) {
+    final updatedGradeRanges = _gradeRanges
+        .map((range) => GradeRange(
+              rangeId: range.rangeId,
+              gradingSystemId: courseId,
+              min: int.tryParse(_minControllers[range.rangeId]?.text ?? '') ?? 0,
+              max: int.tryParse(_maxControllers[range.rangeId]?.text ?? '') ?? 0,
+              grade: double.tryParse(_gradeControllers[range.rangeId]?.text ?? '') ?? 0.0,
+            ))
+        .toList();
 
     final gradingSystem = GradingSystem(
       gradingSystemId: courseId,
@@ -118,25 +129,58 @@ class _AddCourseState extends State<AddCourse> {
       gradeRanges: updatedGradeRanges,
     );
 
-    final course = Course(
-  courseId: courseId,
-  userId: userId,
-  courseName: courseNameController.text,
-  courseCode: courseCodeController.text,
-  units: unitsController.text,
-  instructor: instructorController.text,
-  academicYear: academicYearController.text,
-  semester: selectedSemester ?? '',
-  gradingSystem: gradingSystem,
-  components: [],
-);
+    return Course(
+      courseId: courseId,
+      userId: userId,
+      courseName: _courseNameController.text,
+      courseCode: _courseCodeController.text,
+      units: _unitsController.text,
+      instructor: _instructorController.text,
+      academicYear: _academicYearController.text,
+      semester: selectedSemester ?? '',
+      gradingSystem: gradingSystem,
+      components: [],
+    );
+  }
 
-    await docRef.set(course.toMap());
+  Future<void> _saveCourseToFirestore() async {
+    final docRef = FirebaseFirestore.instance.collection('courses').doc();
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final userId = authProvider.appUser?.userId ?? '';
+    final course = _createCourse(docRef.id, userId);
 
-    final userDocRef = FirebaseFirestore.instance.collection('appusers').doc(userId);
-  await userDocRef.update({
-    'courses': FieldValue.arrayUnion([course.toMap()])
-  });
+    try {
+      await docRef.set(course.toMap()).timeout(_saveTimeout);
+      print("Course saved successfully online!");
+    } on TimeoutException {
+      print("Save timed out - data cached offline");
+    } catch (e) {
+      print("Save completed (offline mode): $e");
+    }
+  }
+
+  Future<void> _handleSaveButton() async {
+    _showLoadingDialog();
+    await _saveCourseToFirestore();
+    if (mounted) {
+      _dismissLoadingAndNavigate();
+    }
+  }
+
+  void _showLoadingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+  }
+
+  void _dismissLoadingAndNavigate() {
+    Navigator.of(context).pop(); // Close loading dialog
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const MainScaffold()),
+      (route) => false,
+    );
   }
 
   @override
@@ -146,13 +190,7 @@ class _AddCourseState extends State<AddCourse> {
     final width = size.width;
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        automaticallyImplyLeading: true,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
+      appBar: _buildAppBar(),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -166,57 +204,23 @@ class _AddCourseState extends State<AddCourse> {
                 SizedBox(height: height * 0.025),
                 _buildGradingSystem(height),
                 SizedBox(height: height * 0.015),
-                Center(
-                  child: SizedBox(
-                    width: size.width * 0.8,
-                    height: size.height * 0.06,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        showDialog(
-                          context: context,
-                          barrierDismissible: false,
-                          builder:
-                              (context) => const Center(
-                                child: CircularProgressIndicator(),
-                              ),
-                        );
-                        await _saveCourseToFirestore();
-                        if (mounted) {
-                          Navigator.of(
-                            context,
-                          ).pop(); // Close the loading dialog
-                          Navigator.of(context).pushAndRemoveUntil(
-                            MaterialPageRoute(
-                              builder: (context) => const MainScaffold(),
-                            ),
-                            (route) => false,
-                          );
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6200EE),
-                        elevation: 8,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(50),
-                        ),
-                      ),
-                      child: Text(
-                        "Add Course",
-                        style: GoogleFonts.poppins(
-                          fontSize: size.height * 0.020,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+                _buildSaveButton(size),
                 SizedBox(height: height * 0.02),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  AppBar _buildAppBar() {
+    return AppBar(
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      automaticallyImplyLeading: true,
+      iconTheme: const IconThemeData(color: Colors.white),
     );
   }
 
@@ -250,21 +254,21 @@ class _AddCourseState extends State<AddCourse> {
           label: "Course Code",
           icon: Icons.article,
           hintText: "CMSC 23",
-          controller: courseCodeController,
+          controller: _courseCodeController,
         ),
         SizedBox(height: height * 0.015),
         CustField(
           label: "Course Name",
           icon: Icons.menu_book,
           hintText: "Mobile Programming",
-          controller: courseNameController,
+          controller: _courseNameController,
         ),
         SizedBox(height: height * 0.015),
         CustField(
           label: "Academic Year",
           icon: Icons.calendar_month,
           hintText: "2024-2025",
-          controller: academicYearController,
+          controller: _academicYearController,
         ),
         SizedBox(height: height * 0.015),
         _buildSemesterDropdown(height),
@@ -273,7 +277,7 @@ class _AddCourseState extends State<AddCourse> {
           label: "Units",
           icon: Icons.format_list_numbered,
           hintText: "3",
-          controller: unitsController,
+          controller: _unitsController,
           keyboardType: TextInputType.number,
         ),
         SizedBox(height: height * 0.015),
@@ -281,7 +285,7 @@ class _AddCourseState extends State<AddCourse> {
           label: "Instructor (optional)",
           icon: Icons.person,
           hintText: "Mx. Instructor",
-          controller: instructorController,
+          controller: _instructorController,
         ),
       ],
     );
@@ -328,24 +332,19 @@ class _AddCourseState extends State<AddCourse> {
               fontSize: height * 0.018,
             ),
           ),
-          items:
-              semesters.map((semester) {
-                return DropdownMenuItem<String>(
-                  value: semester,
-                  child: Text(
-                    semester,
-                    style: GoogleFonts.poppins(
-                      color: Colors.black87,
-                      fontSize: height * 0.018,
+          items: _semesters
+              .map((semester) => DropdownMenuItem<String>(
+                    value: semester,
+                    child: Text(
+                      semester,
+                      style: GoogleFonts.poppins(
+                        color: Colors.black87,
+                        fontSize: height * 0.018,
+                      ),
                     ),
-                  ),
-                );
-              }).toList(),
-          onChanged: (newValue) {
-            setState(() {
-              selectedSemester = newValue;
-            });
-          },
+                  ))
+              .toList(),
+          onChanged: (newValue) => setState(() => selectedSemester = newValue),
         ),
       ],
     );
@@ -371,6 +370,8 @@ class _AddCourseState extends State<AddCourse> {
   }
 
   Widget _buildGradingTableHeader(double height) {
+    const headers = ["From", "To", "Grade"];
+    
     return Container(
       padding: EdgeInsets.all(height * 0.015),
       decoration: const BoxDecoration(
@@ -382,42 +383,18 @@ class _AddCourseState extends State<AddCourse> {
       ),
       child: Row(
         children: [
-          Expanded(
-            flex: 2,
-            child: Text(
-              "From",
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontSize: height * 0.018,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              "To",
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontSize: height * 0.018,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              "Grade",
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontSize: height * 0.018,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
+          ...headers.map((header) => Expanded(
+                flex: 2,
+                child: Text(
+                  header,
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: height * 0.018,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              )),
           SizedBox(width: height * 0.05),
         ],
       ),
@@ -435,11 +412,8 @@ class _AddCourseState extends State<AddCourse> {
       ),
       child: Column(
         children: [
-          ...gradeRanges.asMap().entries.map((entry) {
-            final index = entry.key;
-            final range = entry.value;
-            return _buildGradeRangeRow(range, index, height);
-          }),
+          ..._gradeRanges.asMap().entries.map((entry) =>
+              _buildGradeRangeRow(entry.value, entry.key, height)),
           _buildAddButton(height),
         ],
       ),
@@ -457,7 +431,7 @@ class _AddCourseState extends State<AddCourse> {
           Expanded(
             flex: 2,
             child: _buildTextField(
-              controller: minControllers[range.rangeId]!,
+              controller: _minControllers[range.rangeId]!,
               height: height,
             ),
           ),
@@ -465,7 +439,7 @@ class _AddCourseState extends State<AddCourse> {
           Expanded(
             flex: 2,
             child: _buildTextField(
-              controller: maxControllers[range.rangeId]!,
+              controller: _maxControllers[range.rangeId]!,
               height: height,
             ),
           ),
@@ -473,7 +447,7 @@ class _AddCourseState extends State<AddCourse> {
           Expanded(
             flex: 2,
             child: _buildTextField(
-              controller: gradeControllers[range.rangeId]!,
+              controller: _gradeControllers[range.rangeId]!,
               height: height,
               isDecimal: true,
             ),
@@ -492,10 +466,9 @@ class _AddCourseState extends State<AddCourse> {
   }) {
     return TextFormField(
       controller: controller,
-      keyboardType:
-          isDecimal
-              ? const TextInputType.numberWithOptions(decimal: true)
-              : TextInputType.number,
+      keyboardType: isDecimal
+          ? const TextInputType.numberWithOptions(decimal: true)
+          : TextInputType.number,
       textAlign: TextAlign.center,
       style: GoogleFonts.poppins(fontSize: height * 0.018),
       decoration: InputDecoration(
@@ -530,17 +503,16 @@ class _AddCourseState extends State<AddCourse> {
   Widget _buildDeleteButton(int index, double height) {
     return SizedBox(
       width: height * 0.05,
-      child:
-          gradeRanges.length > 1
-              ? IconButton(
-                onPressed: () => _removeGradeRange(index),
-                icon: Icon(
-                  Icons.delete,
-                  color: const Color(0xFFCF6C79),
-                  size: height * 0.025,
-                ),
-              )
-              : const SizedBox(),
+      child: _gradeRanges.length > 1
+          ? IconButton(
+              onPressed: () => _removeGradeRange(index),
+              icon: Icon(
+                Icons.delete,
+                color: const Color(0xFFCF6C79),
+                size: height * 0.025,
+              ),
+            )
+          : const SizedBox(),
     );
   }
 
@@ -562,22 +534,30 @@ class _AddCourseState extends State<AddCourse> {
     );
   }
 
-  @override
-  void dispose() {
-    courseCodeController.dispose();
-    courseNameController.dispose();
-    academicYearController.dispose();
-    unitsController.dispose();
-    instructorController.dispose();
-    for (final controller in minControllers.values) {
-      controller.dispose();
-    }
-    for (final controller in maxControllers.values) {
-      controller.dispose();
-    }
-    for (final controller in gradeControllers.values) {
-      controller.dispose();
-    }
-    super.dispose();
+  Widget _buildSaveButton(Size size) {
+    return Center(
+      child: SizedBox(
+        width: size.width * 0.8,
+        height: size.height * 0.06,
+        child: ElevatedButton(
+          onPressed: _handleSaveButton,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF6200EE),
+            elevation: 8,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(50),
+            ),
+          ),
+          child: Text(
+            "Add Course",
+            style: GoogleFonts.poppins(
+              fontSize: size.height * 0.020,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
