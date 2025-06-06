@@ -149,17 +149,22 @@ class _CourseInfoState extends State<CourseInfo> {
     );
   }
 
-  Widget _buildEmptyState(double height) {
-    return Center(
-      child: Text(
-        "No components added yet.",
-        style: GoogleFonts.poppins(
-          color: Colors.white70,
-          fontSize: height * 0.020,
+ Widget _buildEmptyState(double height) {
+  return Column(
+    children: [
+      SizedBox(height: height * 0.18), // Adjust this value as needed
+      Center(
+        child: Text(
+          "No components added yet.",
+          style: GoogleFonts.poppins(
+            color: Colors.white70,
+            fontSize: height * 0.020,
+          ),
         ),
       ),
-    );
-  }
+    ],
+  );
+}
 
   Widget _buildComponentCard(Component component, double height, double width) {
     return Card(
@@ -412,36 +417,60 @@ class _CourseInfoState extends State<CourseInfo> {
             .doc(component.componentId),
       );
 
-      await batch.commit();
+      await batch.commit().timeout(_deleteTimeout);
 
-      // IMPORTANT: Remove component from course document
+      // Update course document - remove component from array
+      await _updateCourseDocument(component);
+
+      // UPDATE PROVIDER - Remove component from local list
       final courseProvider = Provider.of<CourseProvider>(context, listen: false);
       final selectedCourse = courseProvider.selectedCourse;
       
       if (selectedCourse != null) {
-        // Remove component from the course's components array in Firebase
+        // Remove the deleted component from the components list
+        final updatedComponents = selectedCourse.components
+            .where((comp) => comp?.componentId != component.componentId)
+            .toList();
+        
+        // RECALCULATE GRADE after component removal
+        final calculatedGrade = await _calculateCourseGradeAfterDelete(updatedComponents);
+        
+        // Create updated course with new grade
+        final updatedCourse = Course(
+          courseId: selectedCourse.courseId,
+          userId: selectedCourse.userId,
+          courseName: selectedCourse.courseName,
+          courseCode: selectedCourse.courseCode,
+          units: selectedCourse.units,
+          instructor: selectedCourse.instructor,
+          academicYear: selectedCourse.academicYear,
+          semester: selectedCourse.semester,
+          gradingSystem: selectedCourse.gradingSystem,
+          components: updatedComponents,
+          grade: calculatedGrade, // Updated grade
+        );
+
+        // Update grade in Firebase
         await FirebaseFirestore.instance
             .collection('courses')
             .doc(selectedCourse.courseId)
-            .update({
-          'components': FieldValue.arrayRemove([component.toMap()])
-        });
+            .update({'grade': calculatedGrade});
+
+        // Update provider with new course data
+        courseProvider.updateSelectedCourse(updatedCourse);
         
-        // Now let provider handle grade calculation and state updates
-        await courseProvider.removeComponentAndUpdateGrade(component.componentId);
+        print("Course grade updated after deletion: ${calculatedGrade}%");
       }
 
       if (mounted) {
         _hideLoadingDialog();
         _showSuccessMessage(component.componentName);
       }
-      
     } catch (e) {
       if (mounted) {
         _hideLoadingDialog();
         _showErrorMessage(e.toString());
       }
-      print("Error deleting component: $e");
     }
   }
 

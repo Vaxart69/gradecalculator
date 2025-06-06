@@ -127,19 +127,24 @@ class _HomescreenState extends State<Homescreen> {
         }
 
         if (!courseSnapshot.hasData || courseSnapshot.data!.docs.isEmpty) {
-          return Center(
-            child: Text(
-              "No saved courses yet.",
-              style: GoogleFonts.poppins(
-                color: Colors.white70,
-                fontSize: height * 0.020,
+          return Column(
+            children: [
+              SizedBox(height: height * 0.30), 
+              Center(
+                child: Text(
+                  "No courses added yet.",
+                  style: GoogleFonts.poppins(
+                    color: Colors.white70,
+                    fontSize: height * 0.020,
+                  ),
+                ),
               ),
-            ),
+            ],
           );
         }
 
         final courses = courseSnapshot.data!.docs;
-        final width = MediaQuery.of(context).size.width; // Get width here
+        final width = MediaQuery.of(context).size.width; 
         return Column(
           children:
               courses.map((doc) {
@@ -167,16 +172,16 @@ class _HomescreenState extends State<Homescreen> {
       margin: EdgeInsets.symmetric(vertical: height * 0.008),
       elevation: 4.0,
       shadowColor: Colors.black.withOpacity(1),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8.0),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
       child: Stack(
         children: [
           ListTile(
             onTap: () {
               // Set the selected course in provider
-              Provider.of<CourseProvider>(context, listen: false)
-                  .selectCourse(course);
+              Provider.of<CourseProvider>(
+                context,
+                listen: false,
+              ).selectCourse(course);
             },
             visualDensity: VisualDensity.compact,
             contentPadding: EdgeInsets.fromLTRB(
@@ -245,13 +250,15 @@ class _HomescreenState extends State<Homescreen> {
             ),
           ),
           TextSpan(
-            text: course.grade != null 
-                ? "${course.grade!.toStringAsFixed(2)}%"
-                : "No grade yet",
+            text:
+                course.grade != null
+                    ? "${course.grade!.toStringAsFixed(2)}%"
+                    : "No grade yet",
             style: GoogleFonts.poppins(
-              color: course.grade != null 
-                  ? _getGradeColor(course.grade!)
-                  : Colors.white70,
+              color:
+                  course.grade != null
+                      ? _getGradeColor(course.grade!)
+                      : Colors.white70,
               fontWeight: FontWeight.bold,
               fontSize: height * 0.014,
             ),
