@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:gradecalculator/components/custom_text_form_field.dart';
-
 import 'package:gradecalculator/models/records.dart';
 import 'package:gradecalculator/models/components.dart';
 import 'package:gradecalculator/models/course.dart';
@@ -17,10 +16,11 @@ class AddComponent extends StatefulWidget {
 }
 
 class _AddComponentState extends State<AddComponent> {
+  // Controllers for component fields
   final TextEditingController componentNameController = TextEditingController();
   final TextEditingController weightController = TextEditingController();
 
-  // Change this to store actual Records objects
+  // Records models and controllers
   final List<Records> records = [];
   final Map<String, TextEditingController> nameControllers = {};
   final Map<String, TextEditingController> scoreControllers = {};
@@ -32,7 +32,6 @@ class _AddComponentState extends State<AddComponent> {
     _addRecord(); // Add initial record
   }
 
-  // Add this debug function
   void _debugPrintRecords(String action) {
     print("=== DEBUG: Records $action ===");
     print("Total Records Count: ${records.length}");
@@ -43,8 +42,6 @@ class _AddComponentState extends State<AddComponent> {
       for (int i = 0; i < records.length; i++) {
         final record = records[i];
         final recordId = record.recordId;
-
-        // Get current values from controllers
         final name = nameControllers[recordId]?.text ?? '';
         final score = scoreControllers[recordId]?.text ?? '';
         final total = totalControllers[recordId]?.text ?? '';
@@ -63,11 +60,9 @@ class _AddComponentState extends State<AddComponent> {
   void _addRecord() {
     setState(() {
       final recordId = DateTime.now().millisecondsSinceEpoch.toString();
-
-      // Create a new Records instance
       final newRecord = Records(
         recordId: recordId,
-        componentId: '', // This will be set when component is saved
+        componentId: '',
         name: '',
         score: 0.0,
         total: 0.0,
@@ -77,8 +72,6 @@ class _AddComponentState extends State<AddComponent> {
       nameControllers[recordId] = TextEditingController();
       scoreControllers[recordId] = TextEditingController();
       totalControllers[recordId] = TextEditingController();
-
-      // Debug print after adding
       _debugPrintRecords("ADDED");
     });
   }
@@ -86,8 +79,6 @@ class _AddComponentState extends State<AddComponent> {
   void _removeRecord(int index) {
     setState(() {
       final recordId = records[index].recordId;
-
-      // Debug print before removing
       print("=== DEBUG: REMOVING Record at index $index ===");
       print("Record ID to remove: $recordId");
 
@@ -98,27 +89,10 @@ class _AddComponentState extends State<AddComponent> {
       scoreControllers.remove(recordId);
       totalControllers.remove(recordId);
       records.removeAt(index);
-
-      // Debug print after removing
       _debugPrintRecords("REMOVED");
     });
   }
 
-  // Method to convert controllers data to Records objects
-  List<Records> _getRecordsFromControllers() {
-    return records.map((record) {
-      final recordId = record.recordId;
-      return Records(
-        recordId: recordId,
-        componentId: record.componentId, // Will be set when saving component
-        name: nameControllers[recordId]?.text ?? '',
-        score: double.tryParse(scoreControllers[recordId]?.text ?? '0') ?? 0.0,
-        total: double.tryParse(totalControllers[recordId]?.text ?? '0') ?? 0.0,
-      );
-    }).toList();
-  }
-
-  // Add this method to save component and records to Firebase
   Future<void> _saveComponentToFirestore() async {
     final courseProvider = Provider.of<CourseProvider>(context, listen: false);
     final selectedCourse = courseProvider.selectedCourse;
@@ -129,58 +103,48 @@ class _AddComponentState extends State<AddComponent> {
     }
 
     try {
-      // Create component document reference
       final componentDocRef = FirebaseFirestore.instance.collection('components').doc();
       final componentId = componentDocRef.id;
 
-      // Create the component (WITHOUT records list since we store them separately)
+      // Update records with componentId and form data
+      final updatedRecords = records.map((record) {
+        final recordId = record.recordId;
+        return Records(
+          recordId: recordId,
+          componentId: componentId,
+          name: nameControllers[recordId]?.text ?? '',
+          score: double.tryParse(scoreControllers[recordId]?.text ?? '0') ?? 0.0,
+          total: double.tryParse(totalControllers[recordId]?.text ?? '0') ?? 0.0,
+        );
+      }).toList();
+
       final component = Component(
         componentId: componentId,
         componentName: componentNameController.text,
         weight: double.tryParse(weightController.text) ?? 0.0,
         courseId: selectedCourse.courseId,
-        records: [], // Empty list since records are stored in separate collection
+        records: [],
       );
 
       // Save component to Firebase
       await componentDocRef.set(component.toMap());
 
-      // Create a batch to save all records at once
+      // Save all records using batch
       final batch = FirebaseFirestore.instance.batch();
-      
-      // Save each record to the records collection
-      for (final record in records) {
-        final recordId = record.recordId;
-        final recordDocRef = FirebaseFirestore.instance.collection('records').doc(recordId);
-        
-        final recordData = Records(
-          recordId: recordId,
-          componentId: componentId, // Reference to the component
-          name: nameControllers[recordId]?.text ?? '',
-          score: double.tryParse(scoreControllers[recordId]?.text ?? '0') ?? 0.0,
-          total: double.tryParse(totalControllers[recordId]?.text ?? '0') ?? 0.0,
-        );
-        
-        // Add to batch
-        batch.set(recordDocRef, recordData.toMap());
+      for (final record in updatedRecords) {
+        final recordDocRef = FirebaseFirestore.instance.collection('records').doc(record.recordId);
+        batch.set(recordDocRef, record.toMap());
       }
-      
-      // Commit all record saves in one transaction
       await batch.commit();
 
-      // Update the course document to include this component
-      final courseDocRef = FirebaseFirestore.instance
-          .collection('courses')
-          .doc(selectedCourse.courseId);
-
+      // Update course document
+      final courseDocRef = FirebaseFirestore.instance.collection('courses').doc(selectedCourse.courseId);
       await courseDocRef.update({
         'components': FieldValue.arrayUnion([component.toMap()])
       });
 
-      // Update the selected course in provider with the new component
-      final updatedComponents = List<Component?>.from(selectedCourse.components)
-        ..add(component);
-
+      // Update provider
+      final updatedComponents = List<Component?>.from(selectedCourse.components)..add(component);
       final updatedCourse = Course(
         courseId: selectedCourse.courseId,
         userId: selectedCourse.userId,
@@ -196,13 +160,11 @@ class _AddComponentState extends State<AddComponent> {
       );
 
       courseProvider.updateSelectedCourse(updatedCourse);
-
       print("Component saved successfully!");
       print("${records.length} records saved to records collection!");
       
     } catch (e) {
       print("Error saving component: $e");
-      // You might want to show an error dialog here
     }
   }
 
@@ -211,6 +173,7 @@ class _AddComponentState extends State<AddComponent> {
     final size = MediaQuery.of(context).size;
     final height = size.height;
     final width = size.width;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -224,104 +187,63 @@ class _AddComponentState extends State<AddComponent> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                RichText(
-                  text: TextSpan(
-                    style: GoogleFonts.poppins(
-                      fontSize: height * 0.04,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                    children: [
-                      const TextSpan(text: "ADD A  "),
-                      TextSpan(
-                        text: "COMPONENT.",
-                        style: GoogleFonts.poppins(
-                          color: const Color(0xFF6200EE),
-                          fontWeight: FontWeight.bold,
-                          fontSize: height * 0.04,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                _buildTitle(height),
                 SizedBox(height: height * 0.03),
-                CustField(
-                  label: "Component",
-                  hintText: "Assignments",
-                  icon: Icons.list_alt,
-                  controller: componentNameController,
-                ),
-                SizedBox(height: height * 0.015),
-                CustField(
-                  label: "Weight (%)",
-                  hintText: "10%",
-                  icon: Icons.assignment,
-                  controller: weightController,
-                  keyboardType: TextInputType.number,
-                ),
+                _buildComponentFields(height),
                 SizedBox(height: height * 0.025),
                 _buildRecordsSystem(height),
                 SizedBox(height: height * 0.015),
-                Center(
-                  child: SizedBox(
-                    width: size.width * 0.8,
-                    height: size.height * 0.06,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        // Validate input
-                        if (componentNameController.text.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Please enter component name')),
-                          );
-                          return;
-                        }
-                        
-                        if (weightController.text.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Please enter component weight')),
-                          );
-                          return;
-                        }
-
-                        showDialog(
-                          context: context,
-                          barrierDismissible: false,
-                          builder: (context) => const Center(
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
-                        
-                        await _saveComponentToFirestore();
-                        
-                        if (mounted) {
-                          Navigator.of(context).pop(); // Close the loading dialog
-                          Navigator.of(context).pop(); // Go back to CourseInfo
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6200EE),
-                        elevation: 8,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(50),
-                        ),
-                      ),
-                      child: Text(
-                        "Add Component",
-                        style: GoogleFonts.poppins(
-                          fontSize: size.height * 0.020,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+                _buildSaveButton(size),
                 SizedBox(height: height * 0.02),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildTitle(double height) {
+    return RichText(
+      text: TextSpan(
+        style: GoogleFonts.poppins(
+          fontSize: height * 0.04,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
+        children: [
+          const TextSpan(text: "ADD A  "),
+          TextSpan(
+            text: "COMPONENT.",
+            style: GoogleFonts.poppins(
+              color: const Color(0xFF6200EE),
+              fontWeight: FontWeight.bold,
+              fontSize: height * 0.04,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildComponentFields(double height) {
+    return Column(
+      children: [
+        CustField(
+          label: "Component",
+          hintText: "Assignments",
+          icon: Icons.list_alt,
+          controller: componentNameController,
+        ),
+        SizedBox(height: height * 0.015),
+        CustField(
+          label: "Weight (%)",
+          hintText: "10",
+          icon: Icons.assignment,
+          controller: weightController,
+          keyboardType: TextInputType.number,
+        ),
+      ],
     );
   }
 
@@ -535,20 +457,73 @@ class _AddComponentState extends State<AddComponent> {
     );
   }
 
-  // Method to save the component with records
-  void _saveComponent() {
-    final recordsList = _getRecordsFromControllers();
+  Widget _buildSaveButton(Size size) {
+    return Center(
+      child: SizedBox(
+        width: size.width * 0.8,
+        height: size.height * 0.06,
+        child: ElevatedButton(
+          onPressed: () async {
+            if (componentNameController.text.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Please enter component name')),
+              );
+              return;
+            }
+            
+            if (weightController.text.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Please enter component weight')),
+              );
+              return;
+            }
 
-    // Here you would typically save to your database
-    // Example:
-    // final component = Component(
-    //   componentName: componentNameController.text,
-    //   weight: double.tryParse(weightController.text) ?? 0.0,
-    //   records: recordsList,
-    // );
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => const Center(child: CircularProgressIndicator()),
+            );
+            
+            await _saveComponentToFirestore();
+            
+            if (mounted) {
+              Navigator.of(context).pop(); // Close loading dialog
+              Navigator.of(context).pop(); // Go back to CourseInfo
+            }
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF6200EE),
+            elevation: 8,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(50),
+            ),
+          ),
+          child: Text(
+            "Add Component",
+            style: GoogleFonts.poppins(
+              fontSize: size.height * 0.020,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
-    print("Component Name: ${componentNameController.text}");
-    print("Weight: ${weightController.text}");
-    print("Records: ${recordsList.map((r) => r.toMap()).toList()}");
+  @override
+  void dispose() {
+    componentNameController.dispose();
+    weightController.dispose();
+    for (final controller in nameControllers.values) {
+      controller.dispose();
+    }
+    for (final controller in scoreControllers.values) {
+      controller.dispose();
+    }
+    for (final controller in totalControllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
   }
 }
