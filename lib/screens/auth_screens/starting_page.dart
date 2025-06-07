@@ -195,7 +195,6 @@ class _StartingPageState extends State<StartingPage> {
                       height: size.height * 0.06,
                       child: ElevatedButton(
                         onPressed: () async {
-                          // Don't show loading dialog - Google Sign-In has its own UI
                           try {
                             final result = await context.read<AuthProvider>().signInWithGoogle();
 
@@ -220,14 +219,15 @@ class _StartingPageState extends State<StartingPage> {
                                     },
                                   ),
                                 );
-                              } else {
-                                // Show error
+                              } else if (result != "Sign in aborted by user") {
+                                // Only show snackbar if it's not a user cancellation
                                 showCustomSnackbar(
                                   context,
                                   result,
                                   duration: const Duration(seconds: 2),
                                 );
                               }
+                              // If cancelled, do nothing
                             }
                           } catch (e) {
                             if (mounted) {
