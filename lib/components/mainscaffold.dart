@@ -4,7 +4,7 @@ import 'package:gradecalculator/components/bottom_nar_bar.dart';
 import 'package:gradecalculator/screens/homescreen.dart';
 import 'package:gradecalculator/screens/course_screens/add_course.dart';
 import 'package:gradecalculator/screens/course_screens/course_info.dart';
-import 'package:gradecalculator/screens/profile_screens/profile_screen.dart';
+import 'package:gradecalculator/screens/about_screen/about.dart';
 import 'package:gradecalculator/providers/course_provider.dart';
 import 'package:provider/provider.dart';
 

@@ -84,7 +84,7 @@ class CustomBottomNav extends StatelessWidget {
           ),
           IconButton(
             icon: Icon(
-              Icons.person,
+              Icons.info,
               color: selectedIndex == 2 ? Colors.white : Colors.white54,
               size: width * 0.065,
             ),

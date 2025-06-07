@@ -2,9 +2,12 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:gradecalculator/components/mainscaffold.dart';
+import 'package:gradecalculator/providers/auth_provider.dart';
 
 import 'package:gradecalculator/screens/auth_screens/login_page.dart';
 import 'package:gradecalculator/screens/auth_screens/signup_page.dart';
+import 'package:provider/provider.dart';
 
 class StartingPage extends StatefulWidget {
   const StartingPage({super.key});
@@ -19,7 +22,7 @@ class _StartingPageState extends State<StartingPage> {
   @override
   void initState() {
     super.initState();
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         setState(() {
@@ -172,34 +175,52 @@ class _StartingPageState extends State<StartingPage> {
                       width: size.width * 0.8,
                       height: size.height * 0.06,
                       child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            PageRouteBuilder(
-                              pageBuilder:
-                                  (context, animation, secondaryAnimation) =>
-                                      const SignupPage(),
-                              transitionsBuilder: (
-                                context,
-                                animation,
-                                secondaryAnimation,
-                                child,
-                              ) {
-                                const begin = Offset(1.0, 0.0);
-                                const end = Offset.zero;
-                                const curve = Curves.easeInOut;
+                        onPressed: () async {
+                          // Don't show loading dialog - Google Sign-In has its own UI
+                          try {
+                            final result = await context.read<AuthProvider>().signInWithGoogle();
 
-                                var tween = Tween(
-                                  begin: begin,
-                                  end: end,
-                                ).chain(CurveTween(curve: curve));
+                            if (mounted) {
+                              if (result == null) {
+                                // Success - navigate to home
+                                Navigator.pushReplacement(
+                                  context,
+                                  PageRouteBuilder(
+                                    pageBuilder: (context, animation, secondaryAnimation) => const MainScaffold(),
+                                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                      const begin = Offset(1.0, 0.0);
+                                      const end = Offset.zero;
+                                      const curve = Curves.easeInOut;
 
-                                return SlideTransition(
-                                  position: animation.drive(tween),
-                                  child: child,
+                                      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+                                      return SlideTransition(
+                                        position: animation.drive(tween),
+                                        child: child,
+                                      );
+                                    },
+                                  ),
                                 );
-                              },
-                            ),
-                          );
+                              } else {
+                                // Show error
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(result),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Color(0xFFFFFFFF),
@@ -245,7 +266,6 @@ class _StartingPageState extends State<StartingPage> {
                             style: GoogleFonts.poppins(
                               color: Color(0xFF6200EE),
                               fontWeight: FontWeight.normal,
-                              
                             ),
                             recognizer:
                                 TapGestureRecognizer()
