@@ -184,7 +184,7 @@ Widget _AboutContent(double height) {
     children: [
       SizedBox(height: height * 0.02),
       Text(
-        "Gradesko is a simple and intuitive grade calculator app that lets users easily manage their courses and compute their grades.",
+        "Gradesko is a simple and intuitive grade calculator app that helps students manage their courses, define custom grading systems, and compute grades with ease. All data is securely stored online using cloud services, which means an internet connection is required to use the app.",
         style: GoogleFonts.poppins(
           color: Colors.white70,
           fontSize: height * 0.018,

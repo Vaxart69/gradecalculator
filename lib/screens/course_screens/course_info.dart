@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:gradecalculator/models/course.dart';
 import 'package:gradecalculator/providers/course_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:gradecalculator/screens/component_screen/add_component.dart';
@@ -18,7 +17,7 @@ class CourseInfo extends StatefulWidget {
 }
 
 class _CourseInfoState extends State<CourseInfo> {
-  static const Duration _deleteTimeout = Duration(seconds: 10);
+  
 
   @override
   Widget build(BuildContext context) {

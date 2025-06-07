@@ -22,7 +22,7 @@ class _HomescreenState extends State<Homescreen> {
     final size = MediaQuery.of(context).size;
     final width = size.width;
     final height = size.height;
-    final authProvider = context.read<AuthProvider>();
+
     final user = context.watch<AuthProvider>().appUser;
 
     return Scaffold(
@@ -260,22 +260,7 @@ class _HomescreenState extends State<Homescreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Transform.translate(
-            offset: Offset(height * 0.037, 0),
-            child: IconButton(
-              icon: Icon(Icons.edit, size: height * 0.017),
-              color: Colors.white30,
-              padding: EdgeInsets.zero,
-              constraints: BoxConstraints(
-                minWidth: height * 0.020,
-                minHeight: height * 0.020,
-              ),
-              onPressed: () {
-                // TODO: Edit logic
-              },
-              tooltip: 'Edit',
-            ),
-          ),
+          
 
           SizedBox(width: width * 0.02),
           IconButton(

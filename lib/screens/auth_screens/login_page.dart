@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter/gestures.dart';
 import 'package:gradecalculator/components/mainscaffold.dart';
 import 'package:gradecalculator/providers/auth_provider.dart';
 
@@ -30,7 +29,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final height = MediaQuery.of(context).size.height;
-    final width = MediaQuery.of(context).size.width;
+   
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: true,
