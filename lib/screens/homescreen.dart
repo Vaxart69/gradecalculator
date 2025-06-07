@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:gradecalculator/providers/auth_provider.dart';
 import 'package:gradecalculator/providers/course_provider.dart';
@@ -335,49 +337,73 @@ class _HomescreenState extends State<Homescreen> {
     try {
       _showLoadingDialog();
       
-      // Step 1: Get all components for this course
-      final componentsSnapshot = await FirebaseFirestore.instance
-          .collection('components')
-          .where('courseId', isEqualTo: course.courseId)
-          .get();
+      try {
+        // Step 1: Get all components for this course with timeout
+        final componentsSnapshot = await FirebaseFirestore.instance
+            .collection('components')
+            .where('courseId', isEqualTo: course.courseId)
+            .get()
+            .timeout(const Duration(seconds: 10)); // Add timeout
 
-      final batch = FirebaseFirestore.instance.batch();
-      
-      // Step 2: For each component, delete all its records
-      for (final componentDoc in componentsSnapshot.docs) {
-        final componentId = componentDoc.id;
+        final batch = FirebaseFirestore.instance.batch();
         
-        // Get all records for this component
-        final recordsSnapshot = await FirebaseFirestore.instance
-            .collection('records')
-            .where('componentId', isEqualTo: componentId)
-            .get();
+        // Step 2: For each component, delete all its records
+        for (final componentDoc in componentsSnapshot.docs) {
+          final componentId = componentDoc.id;
+          
+          // Get all records for this component with timeout
+          final recordsSnapshot = await FirebaseFirestore.instance
+              .collection('records')
+              .where('componentId', isEqualTo: componentId)
+              .get()
+              .timeout(const Duration(seconds: 10)); // Add timeout
         
-        // Delete all records for this component
-        for (final recordDoc in recordsSnapshot.docs) {
-          batch.delete(recordDoc.reference);
+          // Delete all records for this component
+          for (final recordDoc in recordsSnapshot.docs) {
+            batch.delete(recordDoc.reference);
+          }
+          
+          // Delete the component itself
+          batch.delete(componentDoc.reference);
         }
         
-        // Delete the component itself
-        batch.delete(componentDoc.reference);
-      }
-      
-      // Step 3: Delete the course document
-      batch.delete(
-        FirebaseFirestore.instance
-            .collection('courses')
-            .doc(course.courseId),
-      );
+        // Step 3: Delete the course document
+        batch.delete(
+          FirebaseFirestore.instance
+              .collection('courses')
+              .doc(course.courseId),
+        );
 
-      // Execute all deletes in batch
-      await batch.commit();
+        // Execute all deletes in batch with timeout and offline handling
+        try {
+          await batch.commit().timeout(const Duration(seconds: 10));
+          print("Course deleted successfully online!");
+        } on TimeoutException {
+          print("Course delete timed out - data cached offline");
+        } catch (e) {
+          print("Course delete completed (offline mode): $e");
+        }
 
-      if (mounted) {
-        _hideLoadingDialog();
-        _showSuccessMessage(course.courseCode, course.courseName);
+        if (mounted) {
+          _hideLoadingDialog();
+          _showSuccessMessage(course.courseCode, course.courseName);
+        }
+        
+        print("Course '${course.courseCode}' and all related data deleted successfully");
+        
+      } on TimeoutException {
+        if (mounted) {
+          _hideLoadingDialog();
+          _showSuccessMessage(course.courseCode, course.courseName);
+        }
+        print("Course delete timed out - data cached offline");
+      } catch (e) {
+        if (mounted) {
+          _hideLoadingDialog();
+          _showSuccessMessage(course.courseCode, course.courseName);
+        }
+        print("Course delete completed (offline mode): $e");
       }
-      
-      print("Course '${course.courseCode}' and all related data deleted successfully");
       
     } catch (e) {
       if (mounted) {

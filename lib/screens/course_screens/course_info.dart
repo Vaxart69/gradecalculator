@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:gradecalculator/models/course.dart';
@@ -168,8 +170,24 @@ class _CourseInfoState extends State<CourseInfo> {
               .where('courseId', isEqualTo: courseId)
               .snapshots(),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+        // Only show loading if we're waiting AND don't have any data yet
+        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+          return Column(
+            children: [
+              SizedBox(height: height * 0.15),
+              const Center(child: CircularProgressIndicator()),
+              SizedBox(height: height * 0.02),
+              Center(
+                child: Text(
+                  "Loading components...",
+                  style: GoogleFonts.poppins(
+                    color: Colors.white70,
+                    fontSize: height * 0.016,
+                  ),
+                ),
+              ),
+            ],
+          );
         }
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -251,7 +269,8 @@ class _CourseInfoState extends State<CourseInfo> {
               .where('componentId', isEqualTo: component.componentId)
               .snapshots(),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        // Only show loading if we're waiting AND don't have any data yet
+        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
           return _buildLoadingText(height);
         }
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:gradecalculator/api/course_api.dart';
@@ -16,28 +18,59 @@ class CourseProvider with ChangeNotifier {
   Course? get selectedCourse => _selectedCourse;
   
   // Select a course (when user taps on course card)
-  void selectCourse(Course course) async {
+  void selectCourse(Course course) {
+    // Set course immediately for instant navigation
     _selectedCourse = course;
+    notifyListeners(); // Trigger navigation immediately
     
-    // Load fresh components from Firestore
-    final components = await loadCourseComponents(course.courseId);
-    
-    _selectedCourse = Course(
-      courseId: course.courseId,
-      userId: course.userId,
-      courseName: course.courseName,
-      courseCode: course.courseCode,
-      units: course.units,
-      instructor: course.instructor,
-      academicYear: course.academicYear,
-      semester: course.semester,
-      gradingSystem: course.gradingSystem,
-      components: components,
-      grade: course.grade,
-      numericalGrade: course.numericalGrade, // Add this line
-    );
-    
-    notifyListeners();
+    // Load components asynchronously in the background
+    _loadComponentsInBackground(course);
+  }
+
+  Future<void> _loadComponentsInBackground(Course course) async {
+    try {
+      // Load fresh components with timeout
+      final components = await loadCourseComponents(course.courseId);
+      
+      // Only update if this course is still selected
+      if (_selectedCourse?.courseId == course.courseId) {
+        _selectedCourse = Course(
+          courseId: course.courseId,
+          userId: course.userId,
+          courseName: course.courseName,
+          courseCode: course.courseCode,
+          units: course.units,
+          instructor: course.instructor,
+          academicYear: course.academicYear,
+          semester: course.semester,
+          gradingSystem: course.gradingSystem,
+          components: components,
+          grade: course.grade,
+          numericalGrade: course.numericalGrade,
+        );
+        notifyListeners(); // Update UI once components are loaded
+      }
+    } catch (e) {
+      print("Failed to load components (offline?): $e");
+      // Keep the course selected with empty components for offline mode
+      if (_selectedCourse?.courseId == course.courseId) {
+        _selectedCourse = Course(
+          courseId: course.courseId,
+          userId: course.userId,
+          courseName: course.courseName,
+          courseCode: course.courseCode,
+          units: course.units,
+          instructor: course.instructor,
+          academicYear: course.academicYear,
+          semester: course.semester,
+          gradingSystem: course.gradingSystem,
+          components: [], // Empty components when offline
+          grade: course.grade,
+          numericalGrade: course.numericalGrade,
+        );
+        notifyListeners();
+      }
+    }
   }
   
   // Clear selected course
@@ -262,13 +295,22 @@ class CourseProvider with ChangeNotifier {
   
   // Add method to load components from Firestore
   Future<List<Component>> loadCourseComponents(String courseId) async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('components')
-        .where('courseId', isEqualTo: courseId)
-        .get();
-        
-    return snapshot.docs
-        .map((doc) => Component.fromMap(doc.data()))
-        .toList();
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('components')
+          .where('courseId', isEqualTo: courseId)
+          .get()
+          .timeout(const Duration(seconds: 10)); // Add timeout
+          
+      return snapshot.docs
+          .map((doc) => Component.fromMap(doc.data()))
+          .toList();
+    } on TimeoutException {
+      print("Loading components timed out - returning empty list");
+      return [];
+    } catch (e) {
+      print("Error loading components (offline?): $e");
+      return [];
+    }
   }
 }
