@@ -36,6 +36,8 @@ class _AddCourseState extends State<AddCourse> {
   final Map<String, TextEditingController> _maxControllers = {};
   final Map<String, TextEditingController> _gradeControllers = {};
 
+  final _formKey = GlobalKey<FormState>();
+
   @override
   void initState() {
     super.initState();
@@ -159,7 +161,35 @@ class _AddCourseState extends State<AddCourse> {
     }
   }
 
+  bool _validateGradingSystem() {
+    bool isValid = true;
+    for (var range in _gradeRanges) {
+      final min = _minControllers[range.rangeId]?.text.trim() ?? '';
+      final max = _maxControllers[range.rangeId]?.text.trim() ?? '';
+      final grade = _gradeControllers[range.rangeId]?.text.trim() ?? '';
+      if (min.isEmpty || max.isEmpty || grade.isEmpty) {
+        isValid = false;
+        break;
+      }
+    }
+    return isValid && _gradeRanges.isNotEmpty;
+  }
+
   Future<void> _handleSaveButton() async {
+    final formValid = _formKey.currentState!.validate();
+    final gradingValid = _validateGradingSystem();
+
+    if (!formValid || !gradingValid) {
+      if (!gradingValid) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please complete all grading system rows.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
     _showLoadingDialog();
     await _saveCourseToFirestore();
     if (mounted) {
@@ -195,18 +225,21 @@ class _AddCourseState extends State<AddCourse> {
         child: SingleChildScrollView(
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: width * 0.08),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildTitle(height),
-                SizedBox(height: height * 0.02),
-                _buildCourseFields(height),
-                SizedBox(height: height * 0.025),
-                _buildGradingSystem(height),
-                SizedBox(height: height * 0.015),
-                _buildSaveButton(size),
-                SizedBox(height: height * 0.02),
-              ],
+            child: Form(
+              key: _formKey, // <-- Add the form key here
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildTitle(height),
+                  SizedBox(height: height * 0.02),
+                  _buildCourseFields(height),
+                  SizedBox(height: height * 0.025),
+                  _buildGradingSystem(height),
+                  SizedBox(height: height * 0.015),
+                  _buildSaveButton(size),
+                  SizedBox(height: height * 0.02),
+                ],
+              ),
             ),
           ),
         ),
@@ -255,6 +288,12 @@ class _AddCourseState extends State<AddCourse> {
           icon: Icons.article,
           hintText: "CMSC 23",
           controller: _courseCodeController,
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return 'Course code is required';
+            }
+            return null;
+          },
         ),
         SizedBox(height: height * 0.015),
         CustField(
@@ -262,6 +301,12 @@ class _AddCourseState extends State<AddCourse> {
           icon: Icons.menu_book,
           hintText: "Mobile Programming",
           controller: _courseNameController,
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return 'Course name is required';
+            }
+            return null;
+          },
         ),
         SizedBox(height: height * 0.015),
         CustField(
@@ -269,6 +314,17 @@ class _AddCourseState extends State<AddCourse> {
           icon: Icons.calendar_month,
           hintText: "2024-2025",
           controller: _academicYearController,
+          keyboardType: TextInputType.number, // <-- Only digits allowed
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return 'Academic year is required';
+            }
+            // Optional: Add a pattern check for format like "2024-2025"
+            if (!RegExp(r'^\d{4}-\d{4}$').hasMatch(value.trim())) {
+              return 'Format: YYYY-YYYY';
+            }
+            return null;
+          },
         ),
         SizedBox(height: height * 0.015),
         _buildSemesterDropdown(height),
@@ -279,6 +335,12 @@ class _AddCourseState extends State<AddCourse> {
           hintText: "3",
           controller: _unitsController,
           keyboardType: TextInputType.number,
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return 'Units are required';
+            }
+            return null;
+          },
         ),
         SizedBox(height: height * 0.015),
         CustField(
@@ -313,8 +375,17 @@ class _AddCourseState extends State<AddCourse> {
               borderRadius: BorderRadius.circular(16),
               borderSide: const BorderSide(color: Colors.black26),
             ),
-            focusedBorder: const UnderlineInputBorder(
-              borderSide: BorderSide(color: Color(0xFF6200EE), width: 2),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Color(0xFF6200EE), width: 2),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Colors.red, width: 2),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Colors.red, width: 2),
             ),
           ),
           dropdownColor: Colors.white,
@@ -345,6 +416,12 @@ class _AddCourseState extends State<AddCourse> {
                   ))
               .toList(),
           onChanged: (newValue) => setState(() => selectedSemester = newValue),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Semester is required';
+            }
+            return null;
+          },
         ),
       ],
     );
@@ -355,7 +432,7 @@ class _AddCourseState extends State<AddCourse> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Grading System (Numerical Only)",
+          "Grading System",
           style: GoogleFonts.poppins(
             color: Colors.white,
             fontWeight: FontWeight.w600,

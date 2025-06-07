@@ -14,9 +14,18 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  final _formKey = GlobalKey<FormState>();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  final TapGestureRecognizer forgotPasswordRecognizer = TapGestureRecognizer();
+  
+  bool _isPasswordVisible = false; // Add this
+
+  @override
+  void initState() {
+    super.initState();
+    _isPasswordVisible = false; // Initialize to false (password hidden)
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -29,141 +38,152 @@ class _LoginPageState extends State<LoginPage> {
         elevation: 0,
         iconTheme: IconThemeData(color: Color(0xFF6200EE)),
       ),
-
       resizeToAvoidBottomInset: true,
-
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: size.width * 0.08),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: height * 0.05),
-                Text(
-                  "Welcome back!",
-                  style: GoogleFonts.poppins(
-                    fontSize: size.height * 0.04,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                SizedBox(height: height * 0.02),
-                Text(
-                  "Please login to continue",
-                  style: GoogleFonts.poppins(
-                    fontSize: size.height * 0.02,
-                    color: Colors.white70,
-                  ),
-                ),
-                SizedBox(height: height * 0.05),
-
-                CustomTextFormField(
-                  label: "Email",
-                  controller: emailController,
-                ),
-
-                CustomTextFormField(
-                  label: "Password",
-                  controller: passwordController,
-                  obscureText: true,
-                ),
-
-                SizedBox(height: size.height * 0.02),
-
-                Text.rich(
-                  TextSpan(
-                    text: "Forgot Password?",
+            child: Form(
+              key: _formKey, // Add form key
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: height * 0.05),
+                  Text(
+                    "Welcome back!",
                     style: GoogleFonts.poppins(
-                      color: Color(0xFF6200EE),
-                      decoration: TextDecoration.underline,
+                      fontSize: size.height * 0.04,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
-                    recognizer: forgotPasswordRecognizer..onTap = () {},
                   ),
-                ),
+                  SizedBox(height: height * 0.02),
+                  Text(
+                    "Please login to continue",
+                    style: GoogleFonts.poppins(
+                      fontSize: size.height * 0.02,
+                      color: Colors.white70,
+                    ),
+                  ),
+                  SizedBox(height: height * 0.05),
 
-                SizedBox(height: size.height * 0.06),
+                  CustomTextFormField(
+                    label: "Email",
+                    controller: emailController,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Email is required';
+                      }
+                      return null;
+                    },
+                  ),
 
-                SizedBox(
-                  width: size.width * 0.8,
-                  height: size.height * 0.06,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      final email = emailController.text.trim();
-                      final password = passwordController.text.trim();
+                  CustomTextFormField(
+                    label: "Password",
+                    controller: passwordController,
+                    obscureText: !_isPasswordVisible, // Use the toggle state
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Password is required';
+                      }
+                      return null;
+                    },
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                        color: Colors.white70,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isPasswordVisible = !_isPasswordVisible;
+                        });
+                      },
+                    ),
+                  ),
 
-                      showDialog(
-                        context: context,
-                        barrierDismissible: false,
-                        builder:
-                            (context) => const Center(
-                              child: CircularProgressIndicator(),
-                            ),
-                      );
+                  SizedBox(height: size.height * 0.02),
 
-                      String? result = await context
-                          .read<AuthProvider>()
-                          .signIn(email, password);
+                  
 
-                      if (context.mounted) Navigator.pop(context);
+                  SizedBox(height: size.height * 0.06),
 
-                      if (result != null) {
-                        ScaffoldMessenger.of(
-                          // ignore: use_build_context_synchronously
-                          context,
-                        ).showSnackBar(SnackBar(content: Text(result)));
-                      } else {
-                        // Success: Go to homescreen
-                        Navigator.pushReplacement(
-                          // ignore: use_build_context_synchronously
-                          context,
-                          PageRouteBuilder(
-                            pageBuilder:
-                                (context, animation, secondaryAnimation) =>
-                                    const MainScaffold(),
-                            transitionsBuilder: (
-                              context,
-                              animation,
-                              secondaryAnimation,
-                              child,
-                            ) {
-                              const begin = Offset(1.0, 0.0);
-                              const end = Offset.zero;
-                              const curve = Curves.easeInOut;
+                  SizedBox(
+                    width: size.width * 0.8,
+                    height: size.height * 0.06,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        // Validate form first
+                        if (!_formKey.currentState!.validate()) {
+                          return;
+                        }
 
-                              var tween = Tween(
-                                begin: begin,
-                                end: end,
-                              ).chain(CurveTween(curve: curve));
+                        final email = emailController.text.trim();
+                        final password = passwordController.text.trim();
 
-                              return SlideTransition(
-                                position: animation.drive(tween),
-                                child: child,
-                              );
-                            },
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (context) => const Center(
+                            child: CircularProgressIndicator(),
                           ),
                         );
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF6200EE),
-                      elevation: 8,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(50),
-                      ),
-                    ),
 
-                    child: Text(
-                      "Log In",
-                      style: GoogleFonts.poppins(
-                        fontSize: size.height * 0.020,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                        String? result = await context
+                            .read<AuthProvider>()
+                            .signIn(email, password);
+
+                        if (context.mounted) Navigator.pop(context);
+
+                        if (result != null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(result),
+                              backgroundColor: Color(0xFFCF6C79),
+                            ),
+                          );
+                        } else {
+                          // Success: Go to homescreen
+                          Navigator.pushReplacement(
+                            context,
+                            PageRouteBuilder(
+                              pageBuilder: (context, animation, secondaryAnimation) =>
+                                  const MainScaffold(),
+                              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                const begin = Offset(1.0, 0.0);
+                                const end = Offset.zero;
+                                const curve = Curves.easeInOut;
+
+                                var tween = Tween(begin: begin, end: end)
+                                    .chain(CurveTween(curve: curve));
+
+                                return SlideTransition(
+                                  position: animation.drive(tween),
+                                  child: child,
+                                );
+                              },
+                            ),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF6200EE),
+                        elevation: 8,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(50),
+                        ),
+                      ),
+                      child: Text(
+                        "Log In",
+                        style: GoogleFonts.poppins(
+                          fontSize: size.height * 0.020,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -177,6 +197,7 @@ class CustomTextFormField extends StatelessWidget {
   final TextEditingController controller;
   final bool obscureText;
   final String? Function(String?)? validator;
+  final Widget? suffixIcon; // Add this
 
   const CustomTextFormField({
     super.key,
@@ -184,6 +205,7 @@ class CustomTextFormField extends StatelessWidget {
     required this.controller,
     this.obscureText = false,
     this.validator,
+    this.suffixIcon, // Add this
   });
 
   @override
@@ -203,11 +225,22 @@ class CustomTextFormField extends StatelessWidget {
           color: Colors.white70,
           fontSize: size.height * 0.016,
         ),
+        suffixIcon: suffixIcon, // Add this
         enabledBorder: const UnderlineInputBorder(
           borderSide: BorderSide(color: Colors.white38),
         ),
         focusedBorder: const UnderlineInputBorder(
           borderSide: BorderSide(color: Color(0xFF6200EE), width: 2),
+        ),
+        errorBorder: const UnderlineInputBorder(
+          borderSide: BorderSide(color: Color(0xFFCF6C79), width: 2),
+        ),
+        focusedErrorBorder: const UnderlineInputBorder(
+          borderSide: BorderSide(color: Color(0xFFCF6C79), width: 2),
+        ),
+        errorStyle: GoogleFonts.poppins(
+          color: const Color(0xFFCF6C79),
+          fontWeight: FontWeight.w600,
         ),
       ),
     );

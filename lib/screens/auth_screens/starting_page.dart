@@ -47,7 +47,25 @@ class _StartingPageState extends State<StartingPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      SizedBox(height: size.height * 0.4),
+
+                      
+                      SizedBox(height: size.height * 0.15),
+                      // Add the logo above the "Track. Calculate. Predict." text
+                      Center(
+                        child: Image.asset(
+                          'assets/logo.png',
+                          height: size.height * 0.3,
+                        )
+                        .animate(target: _startAnimation ? 1 : 0)
+                        .fadeIn(duration: 350.ms, delay: 300.ms)
+                        .slideY(
+                          begin: 0.3,
+                          end: 0,
+                          duration: 350.ms,
+                          curve: Curves.easeOut,
+                        ),
+                      ),
+                      SizedBox(height: size.height * 0.01),
                       Center(
                         child: RichText(
                               textAlign: TextAlign.center,

@@ -27,6 +27,8 @@ class _AddComponentState extends State<AddComponent> {
   final Map<String, TextEditingController> scoreControllers = {};
   final Map<String, TextEditingController> totalControllers = {};
 
+  final _formKey = GlobalKey<FormState>();
+
   bool get isEditMode => widget.componentToEdit != null; // Helper getter
 
   @override
@@ -264,6 +266,20 @@ class _AddComponentState extends State<AddComponent> {
     print("Component updated successfully!");
   }
 
+  bool _validateRecords() {
+    if (records.isEmpty) return false;
+    for (var record in records) {
+      final recordId = record.recordId;
+      final name = nameControllers[recordId]?.text.trim() ?? '';
+      final score = scoreControllers[recordId]?.text.trim() ?? '';
+      final total = totalControllers[recordId]?.text.trim() ?? '';
+      if (name.isEmpty || score.isEmpty || total.isEmpty) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -280,18 +296,21 @@ class _AddComponentState extends State<AddComponent> {
         child: SingleChildScrollView(
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: width * 0.08),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildTitle(height),
-                SizedBox(height: height * 0.03),
-                _buildComponentFields(height),
-                SizedBox(height: height * 0.025),
-                _buildRecordsSystem(height),
-                SizedBox(height: height * 0.015),
-                _buildSaveButton(size),
-                SizedBox(height: height * 0.02),
-              ],
+            child: Form(
+              key: _formKey, // <-- Add the form key here
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildTitle(height),
+                  SizedBox(height: height * 0.03),
+                  _buildComponentFields(height),
+                  SizedBox(height: height * 0.025),
+                  _buildRecordsSystem(height),
+                  SizedBox(height: height * 0.015),
+                  _buildSaveButton(size),
+                  SizedBox(height: height * 0.02),
+                ],
+              ),
             ),
           ),
         ),
@@ -330,6 +349,12 @@ class _AddComponentState extends State<AddComponent> {
           hintText: "Assignments",
           icon: Icons.list_alt,
           controller: componentNameController,
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return 'Component name is required';
+            }
+            return null;
+          },
         ),
         SizedBox(height: height * 0.015),
         CustField(
@@ -338,6 +363,16 @@ class _AddComponentState extends State<AddComponent> {
           icon: Icons.assignment,
           controller: weightController,
           keyboardType: TextInputType.number,
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return 'Weight is required';
+            }
+            final weight = double.tryParse(value.trim()) ?? 0.0;
+            if (weight == 0.0) {
+              return 'Weight cannot be 0';
+            }
+            return null;
+          },
         ),
       ],
     );
@@ -560,17 +595,18 @@ class _AddComponentState extends State<AddComponent> {
         height: size.height * 0.06,
         child: ElevatedButton(
           onPressed: () async {
-            if (componentNameController.text.isEmpty) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Please enter component name')),
-              );
-              return;
-            }
-            
-            if (weightController.text.isEmpty) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Please enter component weight')),
-              );
+            final formValid = _formKey.currentState!.validate();
+            final recordsValid = _validateRecords();
+
+            if (!formValid || !recordsValid) {
+              if (!recordsValid) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please complete all record rows.'),
+                    backgroundColor: Color(0xFFCF6C79),
+                  ),
+                );
+              }
               return;
             }
 
@@ -579,9 +615,9 @@ class _AddComponentState extends State<AddComponent> {
               barrierDismissible: false,
               builder: (context) => const Center(child: CircularProgressIndicator()),
             );
-            
+
             await _saveComponentToFirestore();
-            
+
             if (mounted) {
               Navigator.of(context).pop(); // Close loading dialog
               Navigator.of(context).pop(); // Go back to CourseInfo
@@ -595,7 +631,7 @@ class _AddComponentState extends State<AddComponent> {
             ),
           ),
           child: Text(
-            isEditMode ? "Update Component" : "Add Component", // Dynamic text
+            isEditMode ? "Update Component" : "Add Component",
             style: GoogleFonts.poppins(
               fontSize: size.height * 0.020,
               color: Colors.white,
