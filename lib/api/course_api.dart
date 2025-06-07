@@ -18,7 +18,8 @@ class CourseApi {
         semester: course.semester,
         gradingSystem: course.gradingSystem,
         components: course.components,
-        grade: course.grade, // <-- Add this line
+        grade: course.grade,
+        numericalGrade: course.numericalGrade, // <-- Add this line
       );
       await docRef.set(courseWithId.toMap());
       return null; // Success

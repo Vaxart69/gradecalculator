@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gradecalculator/providers/auth_provider.dart';
 import 'package:gradecalculator/providers/course_provider.dart'; // Add this import
-import 'package:gradecalculator/screens/course_screens/course_info.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -250,15 +249,13 @@ class _HomescreenState extends State<Homescreen> {
             ),
           ),
           TextSpan(
-            text:
-                course.grade != null
-                    ? "${course.grade!.toStringAsFixed(2)}%"
-                    : "No grade yet",
+            text: course.numericalGrade != null
+                ? course.numericalGrade!.toStringAsFixed(1) // Show numerical grade only
+                : "No grade yet",
             style: GoogleFonts.poppins(
-              color:
-                  course.grade != null
-                      ? _getGradeColor(course.grade!)
-                      : Colors.white70,
+              color: course.numericalGrade != null
+                  ? _getGradeColor(course.numericalGrade!) // Use numerical grade for color
+                  : Colors.white70,
               fontWeight: FontWeight.bold,
               fontSize: height * 0.014,
             ),

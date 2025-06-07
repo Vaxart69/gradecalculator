@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:gradecalculator/api/course_api.dart';
 import 'package:gradecalculator/models/course.dart';
 import 'package:gradecalculator/models/components.dart';
+import 'package:gradecalculator/models/grade_range.dart';
 import 'package:gradecalculator/models/records.dart';
 
 class CourseProvider with ChangeNotifier {
@@ -33,6 +34,7 @@ class CourseProvider with ChangeNotifier {
       gradingSystem: course.gradingSystem,
       components: components,
       grade: course.grade,
+      numericalGrade: course.numericalGrade, // Add this line
     );
     
     notifyListeners();
@@ -110,19 +112,59 @@ class CourseProvider with ChangeNotifier {
     return double.parse(totalGrade.toStringAsFixed(2));
   }
   
-  // UPDATE COURSE GRADE IN FIREBASE AND PROVIDER
+  // CALCULATE NUMERICAL GRADE FROM PERCENTAGE
+  double? calculateNumericalGrade(double percentage, List<GradeRange> gradeRanges) {
+    print("=== NUMERICAL GRADE CALCULATION ===");
+    print("Percentage to convert: ${percentage.toStringAsFixed(2)}%");
+    print("Available grade ranges: ${gradeRanges.length}");
+    
+    for (final range in gradeRanges) {
+      print("Checking range: ${range.min}-${range.max} = ${range.grade}");
+      
+      // Check if percentage falls within this range (inclusive)
+      if (percentage >= range.min && percentage <= range.max) {
+        print("✓ Match found! ${percentage.toStringAsFixed(2)}% falls in range ${range.min}-${range.max}");
+        print("Numerical Grade: ${range.grade}");
+        print("===================================\n");
+        return range.grade;
+      } else {
+        print("✗ No match: ${percentage.toStringAsFixed(2)}% not in ${range.min}-${range.max}");
+      }
+    }
+    
+    print("⚠️ WARNING: No grade range found for ${percentage.toStringAsFixed(2)}%");
+    print("===================================\n");
+    return null; // No matching range found
+  }
+  
+  // UPDATE COURSE GRADE IN FIREBASE AND PROVIDER (Modified)
   Future<void> updateCourseGrade({List<Component?>? components}) async {
     if (_selectedCourse == null) return;
     
     try {
-      // Calculate new grade
-      final newGrade = await calculateCourseGrade(components: components);
+      // Calculate new percentage grade
+      final newPercentageGrade = await calculateCourseGrade(components: components);
+      
+      // Calculate numerical grade from percentage
+      final numericalGrade = calculateNumericalGrade(
+        newPercentageGrade, 
+        _selectedCourse!.gradingSystem.gradeRanges
+      );
+      
+      // Debug print
+      print("=== GRADE UPDATE SUMMARY ===");
+      print("Percentage Grade: ${newPercentageGrade.toStringAsFixed(2)}%");
+      print("Numerical Grade: ${numericalGrade ?? 'No matching range'}");
+      print("============================\n");
       
       // Update in Firebase
       await FirebaseFirestore.instance
           .collection('courses')
           .doc(_selectedCourse!.courseId)
-          .update({'grade': newGrade});
+          .update({
+        'grade': newPercentageGrade,
+        'numericalGrade': numericalGrade, // Add this line
+      });
       
       // Update local state
       _selectedCourse = Course(
@@ -136,11 +178,12 @@ class CourseProvider with ChangeNotifier {
         semester: _selectedCourse!.semester,
         gradingSystem: _selectedCourse!.gradingSystem,
         components: components ?? _selectedCourse!.components,
-        grade: newGrade,
+        grade: newPercentageGrade,
+        numericalGrade: numericalGrade, // Add this line
       );
       
       notifyListeners();
-      print("Course grade updated to: ${newGrade.toStringAsFixed(2)}%");
+      print("Course grades updated - Percentage: ${newPercentageGrade.toStringAsFixed(2)}%, Numerical: ${numericalGrade ?? 'None'}");
       
     } catch (e) {
       print("Error updating course grade: $e");
@@ -155,7 +198,7 @@ class CourseProvider with ChangeNotifier {
     await updateCourseGrade(components: updatedComponents);
   }
   
-  // REMOVE COMPONENT AND UPDATE GRADE
+  // REMOVE COMPONENT AND UPDATE GRADE (Updated)
   Future<void> removeComponentAndUpdateGrade(String componentId) async {
     if (_selectedCourse == null) return;
     
@@ -165,14 +208,29 @@ class CourseProvider with ChangeNotifier {
           .where((comp) => comp?.componentId != componentId)
           .toList();
       
-      // Calculate new grade with remaining components
-      final newGrade = await calculateCourseGrade(components: updatedComponents);
+      // Calculate new percentage grade with remaining components
+      final newPercentageGrade = await calculateCourseGrade(components: updatedComponents);
+      
+      // Calculate numerical grade from percentage
+      final numericalGrade = calculateNumericalGrade(
+        newPercentageGrade, 
+        _selectedCourse!.gradingSystem.gradeRanges
+      );
+      
+      // Debug print
+      print("=== DELETE GRADE UPDATE SUMMARY ===");
+      print("Percentage Grade: ${newPercentageGrade.toStringAsFixed(2)}%");
+      print("Numerical Grade: ${numericalGrade ?? 'No matching range'}");
+      print("===================================\n");
       
       // Update in Firebase
       await FirebaseFirestore.instance
           .collection('courses')
           .doc(_selectedCourse!.courseId)
-          .update({'grade': newGrade});
+          .update({
+        'grade': newPercentageGrade,
+        'numericalGrade': numericalGrade,
+      });
       
       // Update local state
       _selectedCourse = Course(
@@ -186,11 +244,12 @@ class CourseProvider with ChangeNotifier {
         semester: _selectedCourse!.semester,
         gradingSystem: _selectedCourse!.gradingSystem,
         components: updatedComponents,
-        grade: newGrade,
+        grade: newPercentageGrade,
+        numericalGrade: numericalGrade,
       );
       
       notifyListeners();
-      print("Component removed and grade updated to: ${newGrade.toStringAsFixed(2)}%");
+      print("Component removed and grades updated - Percentage: ${newPercentageGrade.toStringAsFixed(2)}%, Numerical: ${numericalGrade ?? 'None'}");
       
     } catch (e) {
       print("Error removing component and updating grade: $e");

@@ -90,11 +90,21 @@ class _CourseInfoState extends State<CourseInfo> {
   Widget _buildCourseHeader(dynamic course, double height) {
     if (course == null) return const SizedBox.shrink();
 
+    // Format the grade display: "2.5 (71.5%)" or just percentage if no numerical grade
+    String gradeDisplay;
+    if (course.numericalGrade != null && course.grade != null) {
+      gradeDisplay = "${course.numericalGrade!.toStringAsFixed(1)} (${course.grade!.toStringAsFixed(2)}%)";
+    } else if (course.grade != null) {
+      gradeDisplay = "${course.grade!.toStringAsFixed(2)}%";
+    } else {
+      gradeDisplay = "No grade yet";
+    }
+
     final headerItems = [
       (course.courseCode, height * 0.04, FontWeight.w800, const Color(0xFF6200EE)),
       (course.courseName, height * 0.024, FontWeight.normal, Colors.white70),
       (course.instructor, height * 0.018, FontWeight.normal, Colors.white70),
-      ("${course.grade?.toStringAsFixed(2) ?? '0.00'}%", height * 0.018, FontWeight.normal, Colors.white70),
+      (gradeDisplay, height * 0.018, FontWeight.normal, Colors.white70), // Updated this line
     ];
 
     return Column(
@@ -417,74 +427,25 @@ class _CourseInfoState extends State<CourseInfo> {
             .doc(component.componentId),
       );
 
-      await batch.commit().timeout(_deleteTimeout);
+      await batch.commit();
 
-      // Update course document - remove component from array
-      await _updateCourseDocument(component);
-
-      // UPDATE PROVIDER - Remove component from local list
+      // REMOVE THE OLD MANUAL CALCULATION - Use CourseProvider instead
       final courseProvider = Provider.of<CourseProvider>(context, listen: false);
-      final selectedCourse = courseProvider.selectedCourse;
       
-      if (selectedCourse != null) {
-        // Remove the deleted component from the components list
-        final updatedComponents = selectedCourse.components
-            .where((comp) => comp?.componentId != component.componentId)
-            .toList();
-        
-        // RECALCULATE GRADE after component removal
-        final calculatedGrade = await _calculateCourseGradeAfterDelete(updatedComponents);
-        
-        // Create updated course with new grade
-        final updatedCourse = Course(
-          courseId: selectedCourse.courseId,
-          userId: selectedCourse.userId,
-          courseName: selectedCourse.courseName,
-          courseCode: selectedCourse.courseCode,
-          units: selectedCourse.units,
-          instructor: selectedCourse.instructor,
-          academicYear: selectedCourse.academicYear,
-          semester: selectedCourse.semester,
-          gradingSystem: selectedCourse.gradingSystem,
-          components: updatedComponents,
-          grade: calculatedGrade, // Updated grade
-        );
-
-        // Update grade in Firebase
-        await FirebaseFirestore.instance
-            .collection('courses')
-            .doc(selectedCourse.courseId)
-            .update({'grade': calculatedGrade});
-
-        // Update provider with new course data
-        courseProvider.updateSelectedCourse(updatedCourse);
-        
-        print("Course grade updated after deletion: ${calculatedGrade}%");
-      }
+      // Let CourseProvider handle BOTH percentage AND numerical grade calculation
+      await courseProvider.removeComponentAndUpdateGrade(component.componentId);
 
       if (mounted) {
         _hideLoadingDialog();
         _showSuccessMessage(component.componentName);
       }
+      
     } catch (e) {
       if (mounted) {
         _hideLoadingDialog();
         _showErrorMessage(e.toString());
       }
-    }
-  }
-
-  Future<void> _updateCourseDocument(Component component) async {
-    final courseProvider = Provider.of<CourseProvider>(context, listen: false);
-    final selectedCourse = courseProvider.selectedCourse;
-
-    if (selectedCourse != null) {
-      await FirebaseFirestore.instance
-          .collection('courses')
-          .doc(selectedCourse.courseId)
-          .update({
-        'components': FieldValue.arrayRemove([component.toMap()]),
-      });
+      print("Error deleting component: $e");
     }
   }
 
@@ -516,54 +477,5 @@ class _CourseInfoState extends State<CourseInfo> {
         backgroundColor: Colors.red,
       ),
     );
-  }
-
-  Future<double> _calculateCourseGradeAfterDelete(List<Component?> components) async {
-    double totalGrade = 0.0;
-    
-    print("=== GRADE CALCULATION AFTER DELETE ===");
-    print("Components remaining: ${components.length}");
-    
-    for (final component in components) {
-      if (component == null) continue;
-      
-      // Get all records for this component from Firestore
-      final recordsSnapshot = await FirebaseFirestore.instance
-          .collection('records')
-          .where('componentId', isEqualTo: component.componentId)
-          .get();
-      
-      double totalScore = 0.0;
-      double totalPossible = 0.0;
-      
-      print("\n--- Component: ${component.componentName} ---");
-      print("Weight: ${component.weight.toStringAsFixed(2)}%");
-      print("Records found: ${recordsSnapshot.docs.length}");
-      
-      for (final doc in recordsSnapshot.docs) {
-        final record = Records.fromMap(doc.data());
-        totalScore += record.score;
-        totalPossible += record.total;
-        
-        print("  ${record.name}: ${record.score.toStringAsFixed(2)}/${record.total.toStringAsFixed(2)}");
-      }
-      
-      if (totalPossible > 0) {
-        double componentPercentage = (totalScore / totalPossible) * 100;
-        double weightedScore = componentPercentage * (component.weight / 100);
-        totalGrade += weightedScore;
-        
-        print("Total Score: ${totalScore.toStringAsFixed(2)}/${totalPossible.toStringAsFixed(2)} = ${componentPercentage.toStringAsFixed(2)}%");
-        print("Weighted Score: ${componentPercentage.toStringAsFixed(2)}% × ${component.weight.toStringAsFixed(2)}% = ${weightedScore.toStringAsFixed(2)}");
-      } else {
-        print("No valid records found for this component");
-      }
-    }
-    
-    print("\n=== FINAL GRADE AFTER DELETE ===");
-    print("Total Course Grade: ${totalGrade.toStringAsFixed(2)}%");
-    print("=============================\n");
-    
-    return double.parse(totalGrade.toStringAsFixed(2));
   }
 }

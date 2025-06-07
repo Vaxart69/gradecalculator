@@ -13,6 +13,7 @@ class Course {
   final GradingSystem gradingSystem; // Only one grading system per course
   final List<Component?> components;
   final double? grade;
+  final double? numericalGrade; // <-- Added numericalGrade
 
   Course({
     required this.courseId,
@@ -25,7 +26,8 @@ class Course {
     required this.semester,
     required this.gradingSystem,
     this.components = const [],
-    this.grade = 0.0, // <-- Default to 0.0
+    this.grade = 0.0,
+    this.numericalGrade, // <-- Added to constructor
   });
 
   factory Course.fromMap(Map<String, dynamic> map) => Course(
@@ -54,6 +56,11 @@ class Course {
                 ? (map['grade'] as int).toDouble()
                 : map['grade'] as double)
             : null, // <-- Add this line
+        numericalGrade: map['numericalGrade'] != null // <-- Map numericalGrade
+            ? (map['numericalGrade'] is int
+                ? (map['numericalGrade'] as int).toDouble()
+                : map['numericalGrade'] as double)
+            : null,
       );
 
   Map<String, dynamic> toMap() => {
@@ -68,5 +75,6 @@ class Course {
         'gradingSystem': gradingSystem.toMap(),
         'components': components.map((e) => e?.toMap()).toList(),
         'grade': grade, // <-- Add this line
+        'numericalGrade': numericalGrade, // <-- Add to map
       };
 }
