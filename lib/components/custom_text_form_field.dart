@@ -69,6 +69,18 @@ class CustField extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
               borderSide: const BorderSide(color: Color(0xFF6200EE), width: 2),
             ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Color(0xFFCF6C79), width: 2),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Color(0xFFCF6C79), width: 2),
+            ),
+            errorStyle: GoogleFonts.poppins(
+              color: const Color(0xFFCF6C79),
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ],

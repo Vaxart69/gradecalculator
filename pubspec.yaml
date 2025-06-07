@@ -42,6 +42,7 @@ dependencies:
   firebase_core: 
   animations: ^2.0.11
   google_sign_in:
+  dropdown_button2:
   
 
 dev_dependencies:

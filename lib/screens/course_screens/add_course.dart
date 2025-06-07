@@ -10,6 +10,7 @@ import 'package:gradecalculator/models/grading_system.dart';
 import 'package:provider/provider.dart';
 import 'package:gradecalculator/providers/auth_provider.dart';
 import 'package:gradecalculator/components/customsnackbar.dart'; // Add this import
+import 'package:dropdown_button2/dropdown_button2.dart'; // Add this import
 
 class AddCourse extends StatefulWidget {
   const AddCourse({super.key});
@@ -366,33 +367,39 @@ class _AddCourseState extends State<AddCourse> {
           ),
         ),
         SizedBox(height: height * 0.005),
-        DropdownButtonFormField<String>(
+        DropdownButtonFormField2<String>(
           decoration: InputDecoration(
             prefixIcon: const Icon(Icons.calendar_month, color: Colors.black54),
             filled: true,
             fillColor: Colors.white,
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 12,
+              horizontal: 16,
+            ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Colors.black26),
+              borderRadius: BorderRadius.circular(16), // Same as other fields
+              borderSide: const BorderSide(color: Color(0xFF121212), width: 2),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(16), // Same as other fields
+              borderSide: const BorderSide(color: Color(0xFF6200EE), width: 2),
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16), // Same as other fields
               borderSide: const BorderSide(color: Color(0xFF6200EE), width: 2),
             ),
             errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Colors.red, width: 2),
+              borderRadius: BorderRadius.circular(16), // Same as other fields
+              borderSide: const BorderSide(color: Color(0xFFCF6C79), width: 2),
             ),
             focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Colors.red, width: 2),
+              borderRadius: BorderRadius.circular(16), // Same as other fields
+              borderSide: const BorderSide(color: Color(0xFFCF6C79), width: 2),
             ),
-          ),
-          dropdownColor: Colors.white,
-          iconEnabledColor: Colors.black54,
-          style: GoogleFonts.poppins(
-            color: Colors.black87,
-            fontSize: height * 0.018,
+            errorStyle: GoogleFonts.poppins(
+              color: const Color(0xFFCF6C79),
+              fontWeight: FontWeight.w600,
+            ),
           ),
           value: selectedSemester,
           hint: Text(
@@ -422,6 +429,31 @@ class _AddCourseState extends State<AddCourse> {
             }
             return null;
           },
+          buttonStyleData: ButtonStyleData(
+            padding: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16), // Same as other fields
+              color: Colors.white,
+            ),
+          ),
+          dropdownStyleData: DropdownStyleData(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16), // Same curves
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            maxHeight: 200,
+          ),
+          iconStyleData: const IconStyleData(
+            icon: Icon(Icons.keyboard_arrow_down),
+            iconEnabledColor: Colors.black54,
+          ),
         ),
       ],
     );
