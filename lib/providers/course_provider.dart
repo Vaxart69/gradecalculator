@@ -114,25 +114,29 @@ class CourseProvider with ChangeNotifier {
   
   // CALCULATE NUMERICAL GRADE FROM PERCENTAGE
   double? calculateNumericalGrade(double percentage, List<GradeRange> gradeRanges) {
+    // Round up if .5 or above, round down if below .5
+    final int rounded = (percentage % 1 >= 0.5)
+        ? percentage.ceil()
+        : percentage.floor();
+
     print("=== NUMERICAL GRADE CALCULATION ===");
-    print("Percentage to convert: ${percentage.toStringAsFixed(2)}%");
+    print("Original Percentage: ${percentage.toStringAsFixed(2)}%");
+    print("Rounded Percentage for range check: $rounded%");
     print("Available grade ranges: ${gradeRanges.length}");
-    
+
     for (final range in gradeRanges) {
       print("Checking range: ${range.min}-${range.max} = ${range.grade}");
-      
-      // Check if percentage falls within this range (inclusive)
-      if (percentage >= range.min && percentage <= range.max) {
-        print("✓ Match found! ${percentage.toStringAsFixed(2)}% falls in range ${range.min}-${range.max}");
+      if (rounded >= range.min && rounded <= range.max) {
+        print("✓ Match found! $rounded% falls in range ${range.min}-${range.max}");
         print("Numerical Grade: ${range.grade}");
         print("===================================\n");
         return range.grade;
       } else {
-        print("✗ No match: ${percentage.toStringAsFixed(2)}% not in ${range.min}-${range.max}");
+        print("✗ No match: $rounded% not in ${range.min}-${range.max}");
       }
     }
-    
-    print("⚠️ WARNING: No grade range found for ${percentage.toStringAsFixed(2)}%");
+
+    print("⚠️ WARNING: No grade range found for $rounded%");
     print("===================================\n");
     return null; // No matching range found
   }

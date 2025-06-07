@@ -58,8 +58,12 @@ class _CourseInfoState extends State<CourseInfo> {
       iconTheme: const IconThemeData(color: Colors.white),
       leading: IconButton(
         icon: const Icon(Icons.arrow_back),
-        onPressed: () => Provider.of<CourseProvider>(context, listen: false)
-            .clearSelectedCourse(),
+        onPressed:
+            () =>
+                Provider.of<CourseProvider>(
+                  context,
+                  listen: false,
+                ).clearSelectedCourse(),
       ),
     );
   }
@@ -75,13 +79,17 @@ class _CourseInfoState extends State<CourseInfo> {
 
   PageRouteBuilder _createSlideRoute() {
     return PageRouteBuilder(
-      pageBuilder: (context, animation, secondaryAnimation) => const AddComponent(),
+      pageBuilder:
+          (context, animation, secondaryAnimation) => const AddComponent(),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         const begin = Offset(1.0, 0.0);
         const end = Offset.zero;
         const curve = Curves.easeInOut;
 
-        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+        var tween = Tween(
+          begin: begin,
+          end: end,
+        ).chain(CurveTween(curve: curve));
         return SlideTransition(position: animation.drive(tween), child: child);
       },
     );
@@ -90,10 +98,13 @@ class _CourseInfoState extends State<CourseInfo> {
   Widget _buildCourseHeader(dynamic course, double height) {
     if (course == null) return const SizedBox.shrink();
 
-    // Format the grade display: "2.5 (71.5%)" or just percentage if no numerical grade
     String gradeDisplay;
     if (course.numericalGrade != null && course.grade != null) {
-      gradeDisplay = "${course.numericalGrade!.toStringAsFixed(1)} (${course.grade!.toStringAsFixed(2)}%)";
+      // Show: 2.0 (81.71% ≈ 82%)
+      final actual = course.grade!;
+      final rounded = (actual % 1 >= 0.5) ? actual.ceil() : actual.floor();
+      gradeDisplay =
+          "${course.numericalGrade} (${actual.toStringAsFixed(2)}% ≈ ${rounded.toStringAsFixed(0)}%)";
     } else if (course.grade != null) {
       gradeDisplay = "${course.grade!.toStringAsFixed(2)}%";
     } else {
@@ -101,22 +112,37 @@ class _CourseInfoState extends State<CourseInfo> {
     }
 
     final headerItems = [
-      (course.courseCode, height * 0.04, FontWeight.w800, const Color(0xFF6200EE)),
+      (
+        course.courseCode,
+        height * 0.04,
+        FontWeight.w800,
+        const Color(0xFF6200EE),
+      ),
       (course.courseName, height * 0.024, FontWeight.normal, Colors.white70),
       (course.instructor, height * 0.018, FontWeight.normal, Colors.white70),
-      (gradeDisplay, height * 0.018, FontWeight.normal, Colors.white70), // Updated this line
+      (
+        gradeDisplay,
+        height * 0.018,
+        FontWeight.normal,
+        Colors.white70,
+      ), // Updated this line
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: headerItems.map((item) => Text(
-        item.$1.toString(),
-        style: GoogleFonts.poppins(
-          color: item.$4,
-          fontWeight: item.$3,
-          fontSize: item.$2,
-        ),
-      )).toList(),
+      children:
+          headerItems
+              .map(
+                (item) => Text(
+                  item.$1.toString(),
+                  style: GoogleFonts.poppins(
+                    color: item.$4,
+                    fontWeight: item.$3,
+                    fontSize: item.$2,
+                  ),
+                ),
+              )
+              .toList(),
     );
   }
 
@@ -136,10 +162,11 @@ class _CourseInfoState extends State<CourseInfo> {
 
   Widget _buildComponentsStream(String courseId, double height, double width) {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('components')
-          .where('courseId', isEqualTo: courseId)
-          .snapshots(),
+      stream:
+          FirebaseFirestore.instance
+              .collection('components')
+              .where('courseId', isEqualTo: courseId)
+              .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -150,31 +177,34 @@ class _CourseInfoState extends State<CourseInfo> {
         }
 
         return Column(
-          children: snapshot.data!.docs.map((doc) {
-            final component = Component.fromMap(doc.data() as Map<String, dynamic>);
-            return _buildComponentCard(component, height, width);
-          }).toList(),
+          children:
+              snapshot.data!.docs.map((doc) {
+                final component = Component.fromMap(
+                  doc.data() as Map<String, dynamic>,
+                );
+                return _buildComponentCard(component, height, width);
+              }).toList(),
         );
       },
     );
   }
 
- Widget _buildEmptyState(double height) {
-  return Column(
-    children: [
-      SizedBox(height: height * 0.18), // Adjust this value as needed
-      Center(
-        child: Text(
-          "No components added yet.",
-          style: GoogleFonts.poppins(
-            color: Colors.white70,
-            fontSize: height * 0.020,
+  Widget _buildEmptyState(double height) {
+    return Column(
+      children: [
+        SizedBox(height: height * 0.18), // Adjust this value as needed
+        Center(
+          child: Text(
+            "No components added yet.",
+            style: GoogleFonts.poppins(
+              color: Colors.white70,
+              fontSize: height * 0.020,
+            ),
           ),
         ),
-      ),
-    ],
-  );
-}
+      ],
+    );
+  }
 
   Widget _buildComponentCard(Component component, double height, double width) {
     return Card(
@@ -185,12 +215,13 @@ class _CourseInfoState extends State<CourseInfo> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
       child: Stack(
         children: [
+          // Remove extra right padding so content uses full width
           ListTile(
             visualDensity: VisualDensity.compact,
             contentPadding: EdgeInsets.fromLTRB(
               height * 0.020,
               height * 0.010,
-              height * 0.075,
+              height * 0.020, // <-- Reduce right padding!
               height * 0.010,
             ),
             title: Text(
@@ -205,6 +236,7 @@ class _CourseInfoState extends State<CourseInfo> {
             ),
             subtitle: _buildRecordsList(component, height),
           ),
+          // Icon buttons overlayed in the top right
           _buildComponentActionButtons(component, height, width),
         ],
       ),
@@ -213,10 +245,11 @@ class _CourseInfoState extends State<CourseInfo> {
 
   Widget _buildRecordsList(Component component, double height) {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('records')
-          .where('componentId', isEqualTo: component.componentId)
-          .snapshots(),
+      stream:
+          FirebaseFirestore.instance
+              .collection('records')
+              .where('componentId', isEqualTo: component.componentId)
+              .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _buildLoadingText(height);
@@ -226,9 +259,12 @@ class _CourseInfoState extends State<CourseInfo> {
           return _buildNoRecordsText(height);
         }
 
-        final recordsList = snapshot.data!.docs
-            .map((doc) => Records.fromMap(doc.data() as Map<String, dynamic>))
-            .toList();
+        final recordsList =
+            snapshot.data!.docs
+                .map(
+                  (doc) => Records.fromMap(doc.data() as Map<String, dynamic>),
+                )
+                .toList();
 
         final (totalScore, totalPossible) = _calculateTotals(recordsList);
 
@@ -236,7 +272,8 @@ class _CourseInfoState extends State<CourseInfo> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ...recordsList.map((record) => _buildRecordRow(record, height)),
-            if (recordsList.isNotEmpty) _buildTotalSection(totalScore, totalPossible, height),
+            if (recordsList.isNotEmpty)
+              _buildTotalSection(totalScore, totalPossible, height, component),
           ],
         );
       },
@@ -246,30 +283,48 @@ class _CourseInfoState extends State<CourseInfo> {
   Widget _buildLoadingText(double height) {
     return Text(
       "Loading records...",
-      style: GoogleFonts.poppins(color: Colors.white70, fontSize: height * 0.014),
+      style: GoogleFonts.poppins(
+        color: Colors.white70,
+        fontSize: height * 0.014,
+      ),
     );
   }
 
   Widget _buildNoRecordsText(double height) {
     return Text(
       "No records yet",
-      style: GoogleFonts.poppins(color: Colors.white70, fontSize: height * 0.014),
+      style: GoogleFonts.poppins(
+        color: Colors.white70,
+        fontSize: height * 0.014,
+      ),
     );
   }
 
   (double, double) _calculateTotals(List<Records> records) {
     double totalScore = 0;
     double totalPossible = 0;
-    
+
     for (final record in records) {
       totalScore += record.score;
       totalPossible += record.total;
     }
-    
+
     return (totalScore, totalPossible);
   }
 
-  Widget _buildTotalSection(double totalScore, double totalPossible, double height) {
+  Widget _buildTotalSection(
+    double totalScore,
+    double totalPossible,
+    double height,
+    Component component,
+  ) {
+    // Calculate the percentage for this component (raw percentage)
+    final componentPercentage =
+        totalPossible > 0 ? (totalScore / totalPossible) * 100 : 0.0;
+
+    // Calculate the NORMALIZED score (what this component contributes to final grade)
+    final normalizedScore = componentPercentage * (component.weight / 100);
+
     return Column(
       children: [
         SizedBox(height: height * 0.008),
@@ -280,16 +335,29 @@ class _CourseInfoState extends State<CourseInfo> {
         ),
         Padding(
           padding: EdgeInsets.only(top: height * 0.004),
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: Text(
-              "${totalScore.toStringAsFixed(2)}/${totalPossible.toStringAsFixed(2)}",
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontSize: height * 0.016,
-                fontWeight: FontWeight.bold,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end, // Align to the left
+            children: [
+              // Show the raw score/total
+              Text(
+                "${totalScore.toStringAsFixed(2)}/${totalPossible.toStringAsFixed(2)}",
+                style: GoogleFonts.poppins(
+                  color: Colors.white70,
+                  fontSize: height * 0.014,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
+              SizedBox(width: height * 0.012), // Small space between
+              // Show the NORMALIZED percentage to the right of the total score
+              Text(
+                "(${normalizedScore.toStringAsFixed(2)}%)",
+                style: GoogleFonts.poppins(
+                  color: Colors.white70,
+                  fontSize: height * 0.014,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -324,32 +392,12 @@ class _CourseInfoState extends State<CourseInfo> {
     );
   }
 
-  Widget _buildComponentActionButtons(Component component, double height, double width) {
-    return Positioned(
-      top: height * 0.005,
-      right: height * 0.005,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildActionButton(
-            Icons.edit,
-            height,
-            'Edit Component',
-            () {}, // TODO: Edit component logic
-          ),
-          SizedBox(width: width * 0.02),
-          _buildActionButton(
-            Icons.delete,
-            height,
-            'Delete Component',
-            () => _showDeleteComponentDialog(component),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton(IconData icon, double height, String tooltip, VoidCallback onPressed) {
+  Widget _buildActionButton(
+    IconData icon,
+    double height,
+    String tooltip,
+    VoidCallback onPressed,
+  ) {
     return Transform.translate(
       offset: icon == Icons.edit ? Offset(height * 0.037, 0) : Offset.zero,
       child: IconButton(
@@ -366,36 +414,92 @@ class _CourseInfoState extends State<CourseInfo> {
     );
   }
 
-  void _showDeleteComponentDialog(Component component) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        title: Text(
-          'Delete Component',
-          style: GoogleFonts.poppins(color: Colors.white),
-        ),
-        content: Text(
-          'Are you sure you want to delete "${component.componentName}"? This action cannot be undone.',
-          style: GoogleFonts.poppins(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              'Cancel',
-              style: GoogleFonts.poppins(color: Colors.white70),
-            ),
+  Widget _buildComponentActionButtons(
+    Component component,
+    double height,
+    double width,
+  ) {
+    return Positioned(
+      top: height * 0.005,
+      right: height * 0.005,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildActionButton(
+            Icons.edit,
+            height,
+            'Edit Component',
+            () => _navigateToEditComponent(component), // Updated this line
           ),
-          TextButton(
-            onPressed: () => _handleDeleteComponent(component),
-            child: Text(
-              'Delete',
-              style: GoogleFonts.poppins(color: Colors.red),
-            ),
+          SizedBox(width: width * 0.02),
+          _buildActionButton(
+            Icons.delete,
+            height,
+            'Delete Component',
+            () => _showDeleteComponentDialog(component),
           ),
         ],
       ),
+    );
+  }
+
+  // Add this method
+  void _navigateToEditComponent(Component component) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder:
+            (context, animation, secondaryAnimation) => AddComponent(
+              componentToEdit: component, // Pass the component to edit
+            ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(1.0, 0.0);
+          const end = Offset.zero;
+          const curve = Curves.easeInOut;
+
+          var tween = Tween(
+            begin: begin,
+            end: end,
+          ).chain(CurveTween(curve: curve));
+          return SlideTransition(
+            position: animation.drive(tween),
+            child: child,
+          );
+        },
+      ),
+    );
+  }
+
+  void _showDeleteComponentDialog(Component component) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: Colors.grey[900],
+            title: Text(
+              'Delete Component',
+              style: GoogleFonts.poppins(color: Colors.white),
+            ),
+            content: Text(
+              'Are you sure you want to delete "${component.componentName}"? This action cannot be undone.',
+              style: GoogleFonts.poppins(color: Colors.white70),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(
+                  'Cancel',
+                  style: GoogleFonts.poppins(color: Colors.white70),
+                ),
+              ),
+              TextButton(
+                onPressed: () => _handleDeleteComponent(component),
+                child: Text(
+                  'Delete',
+                  style: GoogleFonts.poppins(color: Colors.red),
+                ),
+              ),
+            ],
+          ),
     );
   }
 
@@ -407,14 +511,15 @@ class _CourseInfoState extends State<CourseInfo> {
   Future<void> _deleteComponent(Component component) async {
     try {
       _showLoadingDialog();
-      
+
       final batch = FirebaseFirestore.instance.batch();
-      
+
       // Delete all records for this component
-      final recordsQuery = await FirebaseFirestore.instance
-          .collection('records')
-          .where('componentId', isEqualTo: component.componentId)
-          .get();
+      final recordsQuery =
+          await FirebaseFirestore.instance
+              .collection('records')
+              .where('componentId', isEqualTo: component.componentId)
+              .get();
 
       for (final doc in recordsQuery.docs) {
         batch.delete(doc.reference);
@@ -430,8 +535,11 @@ class _CourseInfoState extends State<CourseInfo> {
       await batch.commit();
 
       // REMOVE THE OLD MANUAL CALCULATION - Use CourseProvider instead
-      final courseProvider = Provider.of<CourseProvider>(context, listen: false);
-      
+      final courseProvider = Provider.of<CourseProvider>(
+        context,
+        listen: false,
+      );
+
       // Let CourseProvider handle BOTH percentage AND numerical grade calculation
       await courseProvider.removeComponentAndUpdateGrade(component.componentId);
 
@@ -439,7 +547,6 @@ class _CourseInfoState extends State<CourseInfo> {
         _hideLoadingDialog();
         _showSuccessMessage(component.componentName);
       }
-      
     } catch (e) {
       if (mounted) {
         _hideLoadingDialog();

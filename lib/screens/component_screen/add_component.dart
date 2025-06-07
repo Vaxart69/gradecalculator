@@ -8,7 +8,9 @@ import 'package:provider/provider.dart';
 import 'package:gradecalculator/providers/course_provider.dart';
 
 class AddComponent extends StatefulWidget {
-  const AddComponent({super.key});
+  final Component? componentToEdit; // Add this parameter
+  
+  const AddComponent({super.key, this.componentToEdit}); // Update constructor
 
   @override
   State<AddComponent> createState() => _AddComponentState();
@@ -25,10 +27,55 @@ class _AddComponentState extends State<AddComponent> {
   final Map<String, TextEditingController> scoreControllers = {};
   final Map<String, TextEditingController> totalControllers = {};
 
+  bool get isEditMode => widget.componentToEdit != null; // Helper getter
+
   @override
   void initState() {
     super.initState();
-    _addRecord(); // Add initial record
+    
+    if (isEditMode) {
+      _loadExistingData(); // Load existing component data
+    } else {
+      _addRecord(); // Add initial record for new component
+    }
+  }
+
+  // Load existing component data for editing
+  void _loadExistingData() async {
+    final component = widget.componentToEdit!;
+    
+    // Populate component fields
+    componentNameController.text = component.componentName;
+    weightController.text = component.weight.toString();
+    
+    // Load existing records from Firestore
+    final recordsSnapshot = await FirebaseFirestore.instance
+        .collection('records')
+        .where('componentId', isEqualTo: component.componentId)
+        .get();
+    
+    setState(() {
+      records.clear();
+      nameControllers.clear();
+      scoreControllers.clear();
+      totalControllers.clear();
+      
+      if (recordsSnapshot.docs.isEmpty) {
+        // If no records exist, add one empty record
+        _addRecord();
+      } else {
+        // Load existing records
+        for (final doc in recordsSnapshot.docs) {
+          final record = Records.fromMap(doc.data());
+          records.add(record);
+          
+          final recordId = record.recordId;
+          nameControllers[recordId] = TextEditingController(text: record.name);
+          scoreControllers[recordId] = TextEditingController(text: record.score.toString());
+          totalControllers[recordId] = TextEditingController(text: record.total.toString());
+        }
+      }
+    });
   }
 
   void _debugPrintRecords(String action) {
@@ -92,6 +139,7 @@ class _AddComponentState extends State<AddComponent> {
     });
   }
 
+  // Update save method to handle both add and edit
   Future<void> _saveComponentToFirestore() async {
     final courseProvider = Provider.of<CourseProvider>(context, listen: false);
     final selectedCourse = courseProvider.selectedCourse;
@@ -102,56 +150,118 @@ class _AddComponentState extends State<AddComponent> {
     }
 
     try {
-      final componentDocRef = FirebaseFirestore.instance.collection('components').doc();
-      final componentId = componentDocRef.id;
-
-      // Create component
-      final component = Component(
-        componentId: componentId,
-        componentName: componentNameController.text,
-        weight: double.tryParse(weightController.text) ?? 0.0,
-        courseId: selectedCourse.courseId,
-        records: [],
-      );
-
-      // Create updated records with componentId
-      final updatedRecords = records.map((record) {
-        final recordId = record.recordId;
-        return Records(
-          recordId: recordId,
-          componentId: componentId,
-          name: nameControllers[recordId]?.text ?? '',
-          score: double.tryParse(scoreControllers[recordId]?.text ?? '0') ?? 0.0,
-          total: double.tryParse(totalControllers[recordId]?.text ?? '0') ?? 0.0,
-        );
-      }).toList();
-
-      // Save component to Firebase
-      await componentDocRef.set(component.toMap());
-
-      // Save records
-      final batch = FirebaseFirestore.instance.batch();
-      for (final record in updatedRecords) {
-        final recordDocRef = FirebaseFirestore.instance.collection('records').doc(record.recordId);
-        batch.set(recordDocRef, record.toMap());
+      if (isEditMode) {
+        await _updateExistingComponent();
+      } else {
+        await _createNewComponent();
       }
-      await batch.commit();
-
-      // DON'T store components array in course document
-      // Remove this line:
-      // await FirebaseFirestore.instance.collection('courses').doc(selectedCourse.courseId).update({
-      //   'components': FieldValue.arrayUnion([component.toMap()])
-      // });
-
-      // Let provider handle everything
-      await courseProvider.addComponentAndUpdateGrade(component);
-      
-      print("Component saved successfully!");
-      print("${records.length} records saved to records collection!");
       
     } catch (e) {
       print("Error saving component: $e");
     }
+  }
+
+  Future<void> _createNewComponent() async {
+    final courseProvider = Provider.of<CourseProvider>(context, listen: false);
+    final selectedCourse = courseProvider.selectedCourse!;
+    
+    final componentDocRef = FirebaseFirestore.instance.collection('components').doc();
+    final componentId = componentDocRef.id;
+
+    // Create component
+    final component = Component(
+      componentId: componentId,
+      componentName: componentNameController.text,
+      weight: double.tryParse(weightController.text) ?? 0.0,
+      courseId: selectedCourse.courseId,
+      records: [],
+    );
+
+    // Create updated records with componentId
+    final updatedRecords = records.map((record) {
+      final recordId = record.recordId;
+      return Records(
+        recordId: recordId,
+        componentId: componentId,
+        name: nameControllers[recordId]?.text ?? '',
+        score: double.tryParse(scoreControllers[recordId]?.text ?? '0') ?? 0.0,
+        total: double.tryParse(totalControllers[recordId]?.text ?? '0') ?? 0.0,
+      );
+    }).toList();
+
+    // Save component to Firebase
+    await componentDocRef.set(component.toMap());
+
+    // Save records
+    final batch = FirebaseFirestore.instance.batch();
+    for (final record in updatedRecords) {
+      final recordDocRef = FirebaseFirestore.instance.collection('records').doc(record.recordId);
+      batch.set(recordDocRef, record.toMap());
+    }
+    await batch.commit();
+
+    // Let provider handle everything
+    await courseProvider.addComponentAndUpdateGrade(component);
+    
+    print("Component created successfully!");
+  }
+
+  Future<void> _updateExistingComponent() async {
+    final courseProvider = Provider.of<CourseProvider>(context, listen: false);
+    final selectedCourse = courseProvider.selectedCourse!;
+    final existingComponent = widget.componentToEdit!;
+
+    // Update component
+    final updatedComponent = Component(
+      componentId: existingComponent.componentId,
+      componentName: componentNameController.text,
+      weight: double.tryParse(weightController.text) ?? 0.0,
+      courseId: selectedCourse.courseId,
+      records: [],
+    );
+
+    // Update component in Firebase
+    await FirebaseFirestore.instance
+        .collection('components')
+        .doc(existingComponent.componentId)
+        .update(updatedComponent.toMap());
+
+    // Delete all existing records for this component
+    final existingRecordsSnapshot = await FirebaseFirestore.instance
+        .collection('records')
+        .where('componentId', isEqualTo: existingComponent.componentId)
+        .get();
+
+    final batch = FirebaseFirestore.instance.batch();
+    
+    // Delete old records
+    for (final doc in existingRecordsSnapshot.docs) {
+      batch.delete(doc.reference);
+    }
+
+    // Add new/updated records
+    final updatedRecords = records.map((record) {
+      final recordId = record.recordId;
+      return Records(
+        recordId: recordId,
+        componentId: existingComponent.componentId,
+        name: nameControllers[recordId]?.text ?? '',
+        score: double.tryParse(scoreControllers[recordId]?.text ?? '0') ?? 0.0,
+        total: double.tryParse(totalControllers[recordId]?.text ?? '0') ?? 0.0,
+      );
+    }).toList();
+
+    for (final record in updatedRecords) {
+      final recordDocRef = FirebaseFirestore.instance.collection('records').doc(record.recordId);
+      batch.set(recordDocRef, record.toMap());
+    }
+
+    await batch.commit();
+
+    // Let provider handle grade recalculation
+    await courseProvider.updateCourseGrade();
+    
+    print("Component updated successfully!");
   }
 
   @override
@@ -198,7 +308,7 @@ class _AddComponentState extends State<AddComponent> {
           color: Colors.white,
         ),
         children: [
-          const TextSpan(text: "ADD A  "),
+          TextSpan(text: isEditMode ? "EDIT " : "ADD A "),
           TextSpan(
             text: "COMPONENT.",
             style: GoogleFonts.poppins(
@@ -485,7 +595,7 @@ class _AddComponentState extends State<AddComponent> {
             ),
           ),
           child: Text(
-            "Add Component",
+            isEditMode ? "Update Component" : "Add Component", // Dynamic text
             style: GoogleFonts.poppins(
               fontSize: size.height * 0.020,
               color: Colors.white,

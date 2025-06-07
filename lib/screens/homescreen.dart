@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gradecalculator/providers/auth_provider.dart';
-import 'package:gradecalculator/providers/course_provider.dart'; // Add this import
+import 'package:gradecalculator/providers/course_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -15,18 +15,6 @@ class Homescreen extends StatefulWidget {
 }
 
 class _HomescreenState extends State<Homescreen> {
-  Color _getGradeColor(double grade) {
-    if (grade == 5.0) {
-      return Colors.red;
-    } else if (grade == 4.0) {
-      return Colors.orange;
-    } else if (grade <= 3.0) {
-      return const Color(0xFF2F6D5E);
-    } else {
-      return Colors.white70;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -186,7 +174,7 @@ class _HomescreenState extends State<Homescreen> {
             contentPadding: EdgeInsets.fromLTRB(
               height * 0.020,
               height * 0.010,
-              height * 0.075,
+              height * 0.020, // <-- Reduce right padding so icons don't take up space
               height * 0.010,
             ),
             title: Text(
@@ -201,7 +189,7 @@ class _HomescreenState extends State<Homescreen> {
             ),
             subtitle: _buildCourseSubtitle(course, height),
           ),
-          _buildActionButtons(height, width),
+          _buildActionButtons(height, width, course), // Overlayed icon buttons
         ],
       ),
     );
@@ -250,12 +238,10 @@ class _HomescreenState extends State<Homescreen> {
           ),
           TextSpan(
             text: course.numericalGrade != null
-                ? course.numericalGrade!.toStringAsFixed(1) // Show numerical grade only
+                ? course.numericalGrade!.toStringAsFixed(1)
                 : "No grade yet",
             style: GoogleFonts.poppins(
-              color: course.numericalGrade != null
-                  ? _getGradeColor(course.numericalGrade!) // Use numerical grade for color
-                  : Colors.white70,
+              color: Colors.white70, // Use a single color for all grades
               fontWeight: FontWeight.bold,
               fontSize: height * 0.014,
             ),
@@ -265,7 +251,7 @@ class _HomescreenState extends State<Homescreen> {
     );
   }
 
-  Widget _buildActionButtons(double height, width) {
+  Widget _buildActionButtons(double height, width, courseModel.Course course) { // Add course parameter
     return Positioned(
       top: height * 0.005,
       right: height * 0.005,
@@ -298,12 +284,138 @@ class _HomescreenState extends State<Homescreen> {
               minWidth: height * 0.020,
               minHeight: height * 0.020,
             ),
-            onPressed: () {
-              // TODO: Delete logic
-            },
+            onPressed: () => _showDeleteCourseDialog(course), // Add delete functionality
             tooltip: 'Delete',
           ),
         ],
+      ),
+    );
+  }
+
+  // Add delete dialog functionality
+  void _showDeleteCourseDialog(courseModel.Course course) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey[900],
+        title: Text(
+          'Delete Course',
+          style: GoogleFonts.poppins(color: Colors.white),
+        ),
+        content: Text(
+          'Are you sure you want to delete "${course.courseCode} - ${course.courseName}"? This will also delete all components and records. This action cannot be undone.',
+          style: GoogleFonts.poppins(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.poppins(color: Colors.white70),
+            ),
+          ),
+          TextButton(
+            onPressed: () => _handleDeleteCourse(course),
+            child: Text(
+              'Delete',
+              style: GoogleFonts.poppins(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleDeleteCourse(courseModel.Course course) async {
+    Navigator.of(context).pop(); // Close dialog
+    await _deleteCourse(course);
+  }
+
+  Future<void> _deleteCourse(courseModel.Course course) async {
+    try {
+      _showLoadingDialog();
+      
+      // Step 1: Get all components for this course
+      final componentsSnapshot = await FirebaseFirestore.instance
+          .collection('components')
+          .where('courseId', isEqualTo: course.courseId)
+          .get();
+
+      final batch = FirebaseFirestore.instance.batch();
+      
+      // Step 2: For each component, delete all its records
+      for (final componentDoc in componentsSnapshot.docs) {
+        final componentId = componentDoc.id;
+        
+        // Get all records for this component
+        final recordsSnapshot = await FirebaseFirestore.instance
+            .collection('records')
+            .where('componentId', isEqualTo: componentId)
+            .get();
+        
+        // Delete all records for this component
+        for (final recordDoc in recordsSnapshot.docs) {
+          batch.delete(recordDoc.reference);
+        }
+        
+        // Delete the component itself
+        batch.delete(componentDoc.reference);
+      }
+      
+      // Step 3: Delete the course document
+      batch.delete(
+        FirebaseFirestore.instance
+            .collection('courses')
+            .doc(course.courseId),
+      );
+
+      // Execute all deletes in batch
+      await batch.commit();
+
+      if (mounted) {
+        _hideLoadingDialog();
+        _showSuccessMessage(course.courseCode, course.courseName);
+      }
+      
+      print("Course '${course.courseCode}' and all related data deleted successfully");
+      
+    } catch (e) {
+      if (mounted) {
+        _hideLoadingDialog();
+        _showErrorMessage(e.toString());
+      }
+      print("Error deleting course: $e");
+    }
+  }
+
+  void _showLoadingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+  }
+
+  void _hideLoadingDialog() {
+    Navigator.of(context).pop();
+  }
+
+  void _showSuccessMessage(String courseCode, String courseName) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Course "$courseCode - $courseName" deleted successfully'),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showErrorMessage(String error) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error deleting course: $error'),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
       ),
     );
   }
