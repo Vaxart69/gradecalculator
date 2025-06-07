@@ -9,6 +9,7 @@ import 'package:gradecalculator/models/grade_range.dart';
 import 'package:gradecalculator/models/grading_system.dart';
 import 'package:provider/provider.dart';
 import 'package:gradecalculator/providers/auth_provider.dart';
+import 'package:gradecalculator/components/customsnackbar.dart'; // Add this import
 
 class AddCourse extends StatefulWidget {
   const AddCourse({super.key});
@@ -181,11 +182,10 @@ class _AddCourseState extends State<AddCourse> {
 
     if (!formValid || !gradingValid) {
       if (!gradingValid) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please complete all grading system rows.'),
-            backgroundColor: Colors.red,
-          ),
+        showCustomSnackbar(
+          context,
+          'Please complete all grading system rows.',
+          duration: const Duration(seconds: 2),
         );
       }
       return;

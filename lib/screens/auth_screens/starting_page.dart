@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:gradecalculator/components/mainscaffold.dart';
 import 'package:gradecalculator/providers/auth_provider.dart';
+import 'package:gradecalculator/components/customsnackbar.dart'; // Add this import
 
 import 'package:gradecalculator/screens/auth_screens/login_page.dart';
 import 'package:gradecalculator/screens/auth_screens/signup_page.dart';
@@ -221,21 +222,19 @@ class _StartingPageState extends State<StartingPage> {
                                 );
                               } else {
                                 // Show error
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(result),
-                                    backgroundColor: Colors.red,
-                                  ),
+                                showCustomSnackbar(
+                                  context,
+                                  result,
+                                  duration: const Duration(seconds: 2),
                                 );
                               }
                             }
                           } catch (e) {
                             if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Error: $e'),
-                                  backgroundColor: Colors.red,
-                                ),
+                              showCustomSnackbar(
+                                context,
+                                'Error: $e',
+                                duration: const Duration(seconds: 2),
                               );
                             }
                           }

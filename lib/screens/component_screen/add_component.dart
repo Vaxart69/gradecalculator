@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:gradecalculator/components/custom_text_form_field.dart';
+import 'package:gradecalculator/components/customsnackbar.dart';
 import 'package:gradecalculator/models/records.dart';
 import 'package:gradecalculator/models/components.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -602,11 +603,10 @@ class _AddComponentState extends State<AddComponent> {
 
             if (!formValid || !recordsValid) {
               if (!recordsValid) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please complete all record rows.'),
-                    backgroundColor: Color(0xFFCF6C79),
-                  ),
+                showCustomSnackbar(
+                  context,
+                  'Please complete all record rows.',
+                  duration: const Duration(seconds: 2),
                 );
               }
               return;

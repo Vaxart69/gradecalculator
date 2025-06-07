@@ -3,11 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:gradecalculator/providers/auth_provider.dart';
 import 'package:gradecalculator/providers/course_provider.dart';
+import 'package:gradecalculator/screens/course_screens/course_info.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user.dart' as model;
 import '../models/course.dart' as courseModel;
+import 'package:gradecalculator/components/customsnackbar.dart'; // Add this import
+
 
 class Homescreen extends StatefulWidget {
   const Homescreen({super.key});
@@ -166,11 +169,28 @@ class _HomescreenState extends State<Homescreen> {
         children: [
           ListTile(
             onTap: () {
-              // Set the selected course in provider
-              Provider.of<CourseProvider>(
-                context,
-                listen: false,
-              ).selectCourse(course);
+              // Navigate to CourseInfo instead of setting selected course
+              Provider.of<CourseProvider>(context, listen: false).selectCourse(course);
+              Navigator.of(context).push(
+                PageRouteBuilder(
+                  pageBuilder: (context, animation, secondaryAnimation) => const CourseInfo(),
+                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                    const begin = Offset(1.0, 0.0);
+                    const end = Offset.zero;
+                    const curve = Curves.easeInOut;
+
+                    var tween = Tween(
+                      begin: begin,
+                      end: end,
+                    ).chain(CurveTween(curve: curve));
+
+                    return SlideTransition(
+                      position: animation.drive(tween),
+                      child: child,
+                    );
+                  },
+                ),
+              );
             },
             visualDensity: VisualDensity.compact,
             contentPadding: EdgeInsets.fromLTRB(
@@ -412,22 +432,18 @@ class _HomescreenState extends State<Homescreen> {
   }
 
   void _showSuccessMessage(String courseCode, String courseName) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Course "$courseCode - $courseName" deleted successfully'),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 3),
-      ),
+    showCustomSnackbar(
+      context,
+      'Course "$courseCode - $courseName" deleted successfully',
+      duration: const Duration(seconds: 3),
     );
   }
 
   void _showErrorMessage(String error) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Error deleting course: $error'),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 3),
-      ),
+    showCustomSnackbar(
+      context,
+      'Error deleting course: $error',
+      duration: const Duration(seconds: 3),
     );
   }
 }

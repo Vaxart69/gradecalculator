@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:gradecalculator/providers/auth_provider.dart';
 import 'package:gradecalculator/screens/auth_screens/starting_page.dart';
 import 'package:provider/provider.dart';
+import 'package:gradecalculator/components/customsnackbar.dart'; // Add this import
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -156,22 +157,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
           );
         } else {
           // Show error
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result),
-              backgroundColor: Colors.red,
-            ),
+          showCustomSnackbar(
+            context,
+            result,
+            duration: const Duration(seconds: 2),
           );
         }
       }
     } catch (e) {
       if (mounted) {
         Navigator.of(context).pop(); // Close loading dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error deleting account: $e'),
-            backgroundColor: Colors.red,
-          ),
+        showCustomSnackbar(
+          context,
+          'Error deleting account: $e',
+          duration: const Duration(seconds: 2),
         );
       }
     }

@@ -313,4 +313,11 @@ class CourseProvider with ChangeNotifier {
       return [];
     }
   }
+
+  // Add this method to clear course when user navigates away completely
+  void clearSelectedCourseOnNavigation() {
+    // This can be called when user navigates to different main tabs
+    _selectedCourse = null;
+    notifyListeners();
+  }
 }

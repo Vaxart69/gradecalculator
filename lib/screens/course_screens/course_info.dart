@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:gradecalculator/components/customsnackbar.dart';
 import 'package:gradecalculator/providers/course_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:gradecalculator/screens/component_screen/add_component.dart';
@@ -17,8 +18,6 @@ class CourseInfo extends StatefulWidget {
 }
 
 class _CourseInfoState extends State<CourseInfo> {
-  
-
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -30,6 +29,7 @@ class _CourseInfoState extends State<CourseInfo> {
         final course = courseProvider.selectedCourse;
 
         return Scaffold(
+          backgroundColor: const Color(0xFF121212), // Add background color
           appBar: _buildAppBar(),
           body: SafeArea(
             child: SingleChildScrollView(
@@ -59,12 +59,10 @@ class _CourseInfoState extends State<CourseInfo> {
       iconTheme: const IconThemeData(color: Colors.white),
       leading: IconButton(
         icon: const Icon(Icons.arrow_back),
-        onPressed:
-            () =>
-                Provider.of<CourseProvider>(
-                  context,
-                  listen: false,
-                ).clearSelectedCourse(),
+        onPressed: () {
+          // Just navigate back, don't clear selected course yet
+          Navigator.of(context).pop();
+        },
       ),
     );
   }
@@ -587,20 +585,18 @@ class _CourseInfoState extends State<CourseInfo> {
   }
 
   void _showSuccessMessage(String componentName) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Component "$componentName" deleted successfully'),
-        backgroundColor: Colors.green,
-      ),
+    showCustomSnackbar(
+      context,
+      'Component "$componentName" deleted successfully',
+      duration: const Duration(seconds: 2),
     );
   }
 
   void _showErrorMessage(String error) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Error deleting component: $error'),
-        backgroundColor: Colors.red,
-      ),
+    showCustomSnackbar(
+      context,
+      'Error deleting component: $error',
+      duration: const Duration(seconds: 2),
     );
   }
 }

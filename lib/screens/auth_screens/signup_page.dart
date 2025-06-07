@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:gradecalculator/components/mainscaffold.dart';
 import 'package:gradecalculator/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:gradecalculator/components/customsnackbar.dart'; // Add this import
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -218,11 +219,10 @@ class _SignupPageState extends State<SignupPage> {
                         if (context.mounted) Navigator.pop(context);
 
                         if (result != null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(result),
-                              backgroundColor: Color(0xFFCF6C79),
-                            ),
+                          showCustomSnackbar(
+                            context,
+                            result,
+                            duration: const Duration(seconds: 2),
                           );
                         } else {
                           Navigator.pushReplacement(
