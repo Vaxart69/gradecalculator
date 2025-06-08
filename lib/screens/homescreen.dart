@@ -206,12 +206,13 @@ class _HomescreenState extends State<Homescreen> {
             contentPadding: EdgeInsets.fromLTRB(
               height * 0.020,
               height * 0.010,
-              height *
-                  0.020, // <-- Reduce right padding so icons don't take up space
+              height * 0.080, // Increase right padding to prevent overlap with buttons
               height * 0.010,
             ),
             title: Text(
-              "${course.courseCode} - ${course.courseName}",
+              course.courseName.isNotEmpty 
+                  ? "${course.courseCode} - ${course.courseName}"
+                  : course.courseCode,
               style: GoogleFonts.poppins(
                 color: Colors.white60,
                 fontWeight: FontWeight.bold,
@@ -286,23 +287,25 @@ class _HomescreenState extends State<Homescreen> {
   }
 
   Widget _buildActionButtons(double height, width, courseModel.Course course) {
-    // Add course parameter
     return Positioned(
       top: height * 0.005,
       right: height * 0.005,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          IconButton(
-            icon: Icon(Icons.edit, size: height * 0.017),
-            color: Colors.white30,
-            padding: EdgeInsets.zero,
-            constraints: BoxConstraints(
-              minWidth: height * 0.020,
-              minHeight: height * 0.020,
+          Transform.translate(
+            offset: Offset(height * 0.037, 0), // Nudge edit button left
+            child: IconButton(
+              icon: Icon(Icons.edit, size: height * 0.017),
+              color: Colors.white30,
+              padding: EdgeInsets.zero,
+              constraints: BoxConstraints(
+                minWidth: height * 0.020,
+                minHeight: height * 0.020,
+              ),
+              onPressed: () => _navigateToEditCourse(course),
+              tooltip: 'Edit',
             ),
-            onPressed: () => _navigateToEditCourse(course), // Add edit functionality
-            tooltip: 'Edit',
           ),
           SizedBox(width: width * 0.02),
           IconButton(

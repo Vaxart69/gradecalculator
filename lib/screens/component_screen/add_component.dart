@@ -187,20 +187,23 @@ class _AddComponentState extends State<AddComponent> {
       records: [],
     );
 
-    // Create updated records with componentId
-    final updatedRecords =
-        records.map((record) {
-          final recordId = record.recordId;
-          return Records(
-            recordId: recordId,
-            componentId: componentId,
-            name: nameControllers[recordId]?.text ?? '',
-            score:
-                double.tryParse(scoreControllers[recordId]?.text ?? '0') ?? 0.0,
-            total:
-                double.tryParse(totalControllers[recordId]?.text ?? '0') ?? 0.0,
-          );
-        }).toList();
+    // Create updated records with componentId and default numbering
+    final updatedRecords = records.asMap().entries.map((entry) {
+      final index = entry.key;
+      final record = entry.value;
+      final recordId = record.recordId;
+      final name = nameControllers[recordId]?.text?.trim() ?? '';
+      
+      return Records(
+        recordId: recordId,
+        componentId: componentId,
+        name: name.isEmpty ? (index + 1).toString() : name, // Default to counter
+        score:
+            double.tryParse(scoreControllers[recordId]?.text ?? '0') ?? 0.0,
+        total:
+            double.tryParse(totalControllers[recordId]?.text ?? '0') ?? 0.0,
+      );
+    }).toList();
 
     // Save component to Firebase
     await componentDocRef.set(component.toMap());
@@ -255,20 +258,23 @@ class _AddComponentState extends State<AddComponent> {
       batch.delete(doc.reference);
     }
 
-    // Add new/updated records
-    final updatedRecords =
-        records.map((record) {
-          final recordId = record.recordId;
-          return Records(
-            recordId: recordId,
-            componentId: existingComponent.componentId,
-            name: nameControllers[recordId]?.text ?? '',
-            score:
-                double.tryParse(scoreControllers[recordId]?.text ?? '0') ?? 0.0,
-            total:
-                double.tryParse(totalControllers[recordId]?.text ?? '0') ?? 0.0,
-          );
-        }).toList();
+    // Add new/updated records with default numbering
+    final updatedRecords = records.asMap().entries.map((entry) {
+      final index = entry.key;
+      final record = entry.value;
+      final recordId = record.recordId;
+      final name = nameControllers[recordId]?.text?.trim() ?? '';
+      
+      return Records(
+        recordId: recordId,
+        componentId: existingComponent.componentId,
+        name: name.isEmpty ? (index + 1).toString() : name, // Default to counter
+        score:
+            double.tryParse(scoreControllers[recordId]?.text ?? '0') ?? 0.0,
+        total:
+            double.tryParse(totalControllers[recordId]?.text ?? '0') ?? 0.0,
+      );
+    }).toList();
 
     for (final record in updatedRecords) {
       final recordDocRef = FirebaseFirestore.instance
