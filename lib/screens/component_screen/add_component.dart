@@ -192,7 +192,7 @@ class _AddComponentState extends State<AddComponent> {
       final index = entry.key;
       final record = entry.value;
       final recordId = record.recordId;
-      final name = nameControllers[recordId]?.text?.trim() ?? '';
+      final name = nameControllers[recordId]?.text.trim() ?? '';
       
       return Records(
         recordId: recordId,
@@ -263,7 +263,7 @@ class _AddComponentState extends State<AddComponent> {
       final index = entry.key;
       final record = entry.value;
       final recordId = record.recordId;
-      final name = nameControllers[recordId]?.text?.trim() ?? '';
+      final name = nameControllers[recordId]?.text.trim() ?? '';
       
       return Records(
         recordId: recordId,
