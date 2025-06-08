@@ -12,7 +12,7 @@ import 'package:gradecalculator/providers/course_provider.dart';
 
 class AddComponent extends StatefulWidget {
   final Component? componentToEdit; // Add this parameter
-  
+
   const AddComponent({super.key, this.componentToEdit}); // Update constructor
 
   @override
@@ -37,7 +37,7 @@ class _AddComponentState extends State<AddComponent> {
   @override
   void initState() {
     super.initState();
-    
+
     if (isEditMode) {
       _loadExistingData(); // Load existing component data
     } else {
@@ -48,23 +48,24 @@ class _AddComponentState extends State<AddComponent> {
   // Load existing component data for editing
   void _loadExistingData() async {
     final component = widget.componentToEdit!;
-    
+
     // Populate component fields
     componentNameController.text = component.componentName;
     weightController.text = component.weight.toString();
-    
+
     // Load existing records from Firestore
-    final recordsSnapshot = await FirebaseFirestore.instance
-        .collection('records')
-        .where('componentId', isEqualTo: component.componentId)
-        .get();
-    
+    final recordsSnapshot =
+        await FirebaseFirestore.instance
+            .collection('records')
+            .where('componentId', isEqualTo: component.componentId)
+            .get();
+
     setState(() {
       records.clear();
       nameControllers.clear();
       scoreControllers.clear();
       totalControllers.clear();
-      
+
       if (recordsSnapshot.docs.isEmpty) {
         // If no records exist, add one empty record
         _addRecord();
@@ -73,11 +74,15 @@ class _AddComponentState extends State<AddComponent> {
         for (final doc in recordsSnapshot.docs) {
           final record = Records.fromMap(doc.data());
           records.add(record);
-          
+
           final recordId = record.recordId;
           nameControllers[recordId] = TextEditingController(text: record.name);
-          scoreControllers[recordId] = TextEditingController(text: record.score.toString());
-          totalControllers[recordId] = TextEditingController(text: record.total.toString());
+          scoreControllers[recordId] = TextEditingController(
+            text: record.score.toString(),
+          );
+          totalControllers[recordId] = TextEditingController(
+            text: record.total.toString(),
+          );
         }
       }
     });
@@ -148,7 +153,7 @@ class _AddComponentState extends State<AddComponent> {
   Future<void> _saveComponentToFirestore() async {
     final courseProvider = Provider.of<CourseProvider>(context, listen: false);
     final selectedCourse = courseProvider.selectedCourse;
-    
+
     if (selectedCourse == null) {
       print("No course selected");
       return;
@@ -160,7 +165,6 @@ class _AddComponentState extends State<AddComponent> {
       } else {
         await _createNewComponent();
       }
-      
     } catch (e) {
       print("Error saving component: $e");
     }
@@ -169,8 +173,9 @@ class _AddComponentState extends State<AddComponent> {
   Future<void> _createNewComponent() async {
     final courseProvider = Provider.of<CourseProvider>(context, listen: false);
     final selectedCourse = courseProvider.selectedCourse!;
-    
-    final componentDocRef = FirebaseFirestore.instance.collection('components').doc();
+
+    final componentDocRef =
+        FirebaseFirestore.instance.collection('components').doc();
     final componentId = componentDocRef.id;
 
     // Create component
@@ -183,16 +188,19 @@ class _AddComponentState extends State<AddComponent> {
     );
 
     // Create updated records with componentId
-    final updatedRecords = records.map((record) {
-      final recordId = record.recordId;
-      return Records(
-        recordId: recordId,
-        componentId: componentId,
-        name: nameControllers[recordId]?.text ?? '',
-        score: double.tryParse(scoreControllers[recordId]?.text ?? '0') ?? 0.0,
-        total: double.tryParse(totalControllers[recordId]?.text ?? '0') ?? 0.0,
-      );
-    }).toList();
+    final updatedRecords =
+        records.map((record) {
+          final recordId = record.recordId;
+          return Records(
+            recordId: recordId,
+            componentId: componentId,
+            name: nameControllers[recordId]?.text ?? '',
+            score:
+                double.tryParse(scoreControllers[recordId]?.text ?? '0') ?? 0.0,
+            total:
+                double.tryParse(totalControllers[recordId]?.text ?? '0') ?? 0.0,
+          );
+        }).toList();
 
     // Save component to Firebase
     await componentDocRef.set(component.toMap());
@@ -200,14 +208,16 @@ class _AddComponentState extends State<AddComponent> {
     // Save records
     final batch = FirebaseFirestore.instance.batch();
     for (final record in updatedRecords) {
-      final recordDocRef = FirebaseFirestore.instance.collection('records').doc(record.recordId);
+      final recordDocRef = FirebaseFirestore.instance
+          .collection('records')
+          .doc(record.recordId);
       batch.set(recordDocRef, record.toMap());
     }
     await batch.commit();
 
     // Let provider handle everything
     await courseProvider.addComponentAndUpdateGrade(component);
-    
+
     print("Component created successfully!");
   }
 
@@ -232,32 +242,38 @@ class _AddComponentState extends State<AddComponent> {
         .update(updatedComponent.toMap());
 
     // Delete all existing records for this component
-    final existingRecordsSnapshot = await FirebaseFirestore.instance
-        .collection('records')
-        .where('componentId', isEqualTo: existingComponent.componentId)
-        .get();
+    final existingRecordsSnapshot =
+        await FirebaseFirestore.instance
+            .collection('records')
+            .where('componentId', isEqualTo: existingComponent.componentId)
+            .get();
 
     final batch = FirebaseFirestore.instance.batch();
-    
+
     // Delete old records
     for (final doc in existingRecordsSnapshot.docs) {
       batch.delete(doc.reference);
     }
 
     // Add new/updated records
-    final updatedRecords = records.map((record) {
-      final recordId = record.recordId;
-      return Records(
-        recordId: recordId,
-        componentId: existingComponent.componentId,
-        name: nameControllers[recordId]?.text ?? '',
-        score: double.tryParse(scoreControllers[recordId]?.text ?? '0') ?? 0.0,
-        total: double.tryParse(totalControllers[recordId]?.text ?? '0') ?? 0.0,
-      );
-    }).toList();
+    final updatedRecords =
+        records.map((record) {
+          final recordId = record.recordId;
+          return Records(
+            recordId: recordId,
+            componentId: existingComponent.componentId,
+            name: nameControllers[recordId]?.text ?? '',
+            score:
+                double.tryParse(scoreControllers[recordId]?.text ?? '0') ?? 0.0,
+            total:
+                double.tryParse(totalControllers[recordId]?.text ?? '0') ?? 0.0,
+          );
+        }).toList();
 
     for (final record in updatedRecords) {
-      final recordDocRef = FirebaseFirestore.instance.collection('records').doc(record.recordId);
+      final recordDocRef = FirebaseFirestore.instance
+          .collection('records')
+          .doc(record.recordId);
       batch.set(recordDocRef, record.toMap());
     }
 
@@ -265,7 +281,7 @@ class _AddComponentState extends State<AddComponent> {
 
     // Let provider handle grade recalculation
     await courseProvider.updateCourseGrade();
-    
+
     print("Component updated successfully!");
   }
 
@@ -273,10 +289,10 @@ class _AddComponentState extends State<AddComponent> {
     if (records.isEmpty) return false;
     for (var record in records) {
       final recordId = record.recordId;
-      final name = nameControllers[recordId]?.text.trim() ?? '';
+      // Name is now optional, so we don't check it
       final score = scoreControllers[recordId]?.text.trim() ?? '';
       final total = totalControllers[recordId]?.text.trim() ?? '';
-      if (name.isEmpty || score.isEmpty || total.isEmpty) {
+      if (score.isEmpty || total.isEmpty) {
         return false;
       }
     }
@@ -415,7 +431,7 @@ class _AddComponentState extends State<AddComponent> {
           Expanded(
             flex: 2,
             child: Text(
-              "Name",
+              "Name (optional)",
               style: GoogleFonts.poppins(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
@@ -560,16 +576,17 @@ class _AddComponentState extends State<AddComponent> {
   Widget _buildDeleteButton(int index, double height) {
     return SizedBox(
       width: height * 0.05,
-      child: records.length > 1
-          ? IconButton(
-              onPressed: () => _removeRecord(index),
-              icon: Icon(
-                Icons.delete,
-                color: const Color(0xFFCF6C79),
-                size: height * 0.025,
-              ),
-            )
-          : const SizedBox(),
+      child:
+          records.length > 1
+              ? IconButton(
+                onPressed: () => _removeRecord(index),
+                icon: Icon(
+                  Icons.delete,
+                  color: const Color(0xFFCF6C79),
+                  size: height * 0.025,
+                ),
+              )
+              : const SizedBox(),
     );
   }
 
@@ -615,7 +632,8 @@ class _AddComponentState extends State<AddComponent> {
             showDialog(
               context: context,
               barrierDismissible: false,
-              builder: (context) => const Center(child: CircularProgressIndicator()),
+              builder:
+                  (context) => const Center(child: CircularProgressIndicator()),
             );
 
             await _saveComponentToFirestore();

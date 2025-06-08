@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:gradecalculator/providers/auth_provider.dart';
 import 'package:gradecalculator/providers/course_provider.dart';
+import 'package:gradecalculator/screens/course_screens/add_course.dart';
 import 'package:gradecalculator/screens/course_screens/course_info.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -10,7 +11,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user.dart' as model;
 import '../models/course.dart' as courseModel;
 import 'package:gradecalculator/components/customsnackbar.dart'; // Add this import
-
 
 class Homescreen extends StatefulWidget {
   const Homescreen({super.key});
@@ -121,7 +121,7 @@ class _HomescreenState extends State<Homescreen> {
         if (!courseSnapshot.hasData || courseSnapshot.data!.docs.isEmpty) {
           return Column(
             children: [
-              SizedBox(height: height * 0.30), 
+              SizedBox(height: height * 0.30),
               Center(
                 child: Text(
                   "No courses added yet.",
@@ -136,7 +136,7 @@ class _HomescreenState extends State<Homescreen> {
         }
 
         final courses = courseSnapshot.data!.docs;
-        final width = MediaQuery.of(context).size.width; 
+        final width = MediaQuery.of(context).size.width;
         return Column(
           children:
               courses.map((doc) {
@@ -170,11 +170,21 @@ class _HomescreenState extends State<Homescreen> {
           ListTile(
             onTap: () {
               // Navigate to CourseInfo instead of setting selected course
-              Provider.of<CourseProvider>(context, listen: false).selectCourse(course);
+              Provider.of<CourseProvider>(
+                context,
+                listen: false,
+              ).selectCourse(course);
               Navigator.of(context).push(
                 PageRouteBuilder(
-                  pageBuilder: (context, animation, secondaryAnimation) => const CourseInfo(),
-                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                  pageBuilder:
+                      (context, animation, secondaryAnimation) =>
+                          const CourseInfo(),
+                  transitionsBuilder: (
+                    context,
+                    animation,
+                    secondaryAnimation,
+                    child,
+                  ) {
                     const begin = Offset(1.0, 0.0);
                     const end = Offset.zero;
                     const curve = Curves.easeInOut;
@@ -196,7 +206,8 @@ class _HomescreenState extends State<Homescreen> {
             contentPadding: EdgeInsets.fromLTRB(
               height * 0.020,
               height * 0.010,
-              height * 0.020, // <-- Reduce right padding so icons don't take up space
+              height *
+                  0.020, // <-- Reduce right padding so icons don't take up space
               height * 0.010,
             ),
             title: Text(
@@ -259,9 +270,10 @@ class _HomescreenState extends State<Homescreen> {
             ),
           ),
           TextSpan(
-            text: course.numericalGrade != null
-                ? course.numericalGrade!.toStringAsFixed(1)
-                : "No grade yet",
+            text:
+                course.numericalGrade != null
+                    ? course.numericalGrade!.toString() // Remove .toStringAsFixed(1)
+                    : "No grade yet",
             style: GoogleFonts.poppins(
               color: Colors.white70, // Use a single color for all grades
               fontWeight: FontWeight.bold,
@@ -273,15 +285,25 @@ class _HomescreenState extends State<Homescreen> {
     );
   }
 
-  Widget _buildActionButtons(double height, width, courseModel.Course course) { // Add course parameter
+  Widget _buildActionButtons(double height, width, courseModel.Course course) {
+    // Add course parameter
     return Positioned(
       top: height * 0.005,
       right: height * 0.005,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          
-
+          IconButton(
+            icon: Icon(Icons.edit, size: height * 0.017),
+            color: Colors.white30,
+            padding: EdgeInsets.zero,
+            constraints: BoxConstraints(
+              minWidth: height * 0.020,
+              minHeight: height * 0.020,
+            ),
+            onPressed: () => _navigateToEditCourse(course), // Add edit functionality
+            tooltip: 'Edit',
+          ),
           SizedBox(width: width * 0.02),
           IconButton(
             icon: Icon(Icons.delete, size: height * 0.017),
@@ -291,10 +313,35 @@ class _HomescreenState extends State<Homescreen> {
               minWidth: height * 0.020,
               minHeight: height * 0.020,
             ),
-            onPressed: () => _showDeleteCourseDialog(course), // Add delete functionality
+            onPressed: () => _showDeleteCourseDialog(course),
             tooltip: 'Delete',
           ),
         ],
+      ),
+    );
+  }
+
+  // Add this method for editing courses
+  void _navigateToEditCourse(courseModel.Course course) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => AddCourse(
+          courseToEdit: course, // Pass the course to edit
+        ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(1.0, 0.0);
+          const end = Offset.zero;
+          const curve = Curves.easeInOut;
+
+          var tween = Tween(
+            begin: begin,
+            end: end,
+          ).chain(CurveTween(curve: curve));
+          return SlideTransition(
+            position: animation.drive(tween),
+            child: child,
+          );
+        },
       ),
     );
   }
@@ -303,33 +350,34 @@ class _HomescreenState extends State<Homescreen> {
   void _showDeleteCourseDialog(courseModel.Course course) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        title: Text(
-          'Delete Course',
-          style: GoogleFonts.poppins(color: Colors.white),
-        ),
-        content: Text(
-          'Are you sure you want to delete "${course.courseCode} - ${course.courseName}"? This will also delete all components and records. This action cannot be undone.',
-          style: GoogleFonts.poppins(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              'Cancel',
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: Colors.grey[900],
+            title: Text(
+              'Delete Course',
+              style: GoogleFonts.poppins(color: Colors.white),
+            ),
+            content: Text(
+              'Are you sure you want to delete "${course.courseCode} - ${course.courseName}"? This will also delete all components and records. This action cannot be undone.',
               style: GoogleFonts.poppins(color: Colors.white70),
             ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(
+                  'Cancel',
+                  style: GoogleFonts.poppins(color: Colors.white70),
+                ),
+              ),
+              TextButton(
+                onPressed: () => _handleDeleteCourse(course),
+                child: Text(
+                  'Delete',
+                  style: GoogleFonts.poppins(color: Colors.red),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => _handleDeleteCourse(course),
-            child: Text(
-              'Delete',
-              style: GoogleFonts.poppins(color: Colors.red),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -341,7 +389,7 @@ class _HomescreenState extends State<Homescreen> {
   Future<void> _deleteCourse(courseModel.Course course) async {
     try {
       _showLoadingDialog();
-      
+
       try {
         // Step 1: Get all components for this course with timeout
         final componentsSnapshot = await FirebaseFirestore.instance
@@ -351,32 +399,30 @@ class _HomescreenState extends State<Homescreen> {
             .timeout(const Duration(seconds: 10)); // Add timeout
 
         final batch = FirebaseFirestore.instance.batch();
-        
+
         // Step 2: For each component, delete all its records
         for (final componentDoc in componentsSnapshot.docs) {
           final componentId = componentDoc.id;
-          
+
           // Get all records for this component with timeout
           final recordsSnapshot = await FirebaseFirestore.instance
               .collection('records')
               .where('componentId', isEqualTo: componentId)
               .get()
               .timeout(const Duration(seconds: 10)); // Add timeout
-        
+
           // Delete all records for this component
           for (final recordDoc in recordsSnapshot.docs) {
             batch.delete(recordDoc.reference);
           }
-          
+
           // Delete the component itself
           batch.delete(componentDoc.reference);
         }
-        
+
         // Step 3: Delete the course document
         batch.delete(
-          FirebaseFirestore.instance
-              .collection('courses')
-              .doc(course.courseId),
+          FirebaseFirestore.instance.collection('courses').doc(course.courseId),
         );
 
         // Execute all deletes in batch with timeout and offline handling
@@ -393,9 +439,10 @@ class _HomescreenState extends State<Homescreen> {
           _hideLoadingDialog();
           _showSuccessMessage(course.courseCode, course.courseName);
         }
-        
-        print("Course '${course.courseCode}' and all related data deleted successfully");
-        
+
+        print(
+          "Course '${course.courseCode}' and all related data deleted successfully",
+        );
       } on TimeoutException {
         if (mounted) {
           _hideLoadingDialog();
@@ -409,7 +456,6 @@ class _HomescreenState extends State<Homescreen> {
         }
         print("Course delete completed (offline mode): $e");
       }
-      
     } catch (e) {
       if (mounted) {
         _hideLoadingDialog();

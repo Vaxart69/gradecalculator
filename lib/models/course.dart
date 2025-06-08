@@ -14,6 +14,7 @@ class Course {
   final List<Component?> components;
   final double? grade;
   final double? numericalGrade; // <-- Added numericalGrade
+  final bool? wasRounded; // Add this field
 
   Course({
     required this.courseId,
@@ -28,6 +29,7 @@ class Course {
     this.components = const [],
     this.grade = 0.0,
     this.numericalGrade, // <-- Added to constructor
+    this.wasRounded, // Add to constructor
   });
 
   factory Course.fromMap(Map<String, dynamic> map) => Course(
@@ -61,6 +63,7 @@ class Course {
                 ? (map['numericalGrade'] as int).toDouble()
                 : map['numericalGrade'] as double)
             : null,
+        wasRounded: map['wasRounded'] as bool?, // Add this line
       );
 
   Map<String, dynamic> toMap() => {
@@ -76,5 +79,6 @@ class Course {
         'components': components.map((e) => e?.toMap()).toList(),
         'grade': grade, // <-- Add this line
         'numericalGrade': numericalGrade, // <-- Add to map
+        'wasRounded': wasRounded, // Add this line
       };
 }

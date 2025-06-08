@@ -99,11 +99,16 @@ class _CourseInfoState extends State<CourseInfo> {
 
     String gradeDisplay;
     if (course.numericalGrade != null && course.grade != null) {
-      // Show: 2.0 (81.71% ≈ 82%)
       final actual = course.grade!;
-      final rounded = (actual % 1 >= 0.5) ? actual.ceil() : actual.floor();
-      gradeDisplay =
-          "${course.numericalGrade} (${actual.toStringAsFixed(2)}% ≈ ${rounded.toStringAsFixed(0)}%)";
+      
+      if (course.wasRounded == true) {
+        // Show rounded value only if it was found in the second pass
+        final rounded = (actual % 1 >= 0.5) ? actual.ceil() : actual.floor();
+        gradeDisplay = "${course.numericalGrade} (${actual.toStringAsFixed(2)}% → ${rounded}%)";
+      } else {
+        // Show exact percentage without rounding indicator
+        gradeDisplay = "${course.numericalGrade} (${actual.toStringAsFixed(2)}%)";
+      }
     } else if (course.grade != null) {
       gradeDisplay = "${course.grade!.toStringAsFixed(2)}%";
     } else {
@@ -124,7 +129,7 @@ class _CourseInfoState extends State<CourseInfo> {
         height * 0.018,
         FontWeight.normal,
         Colors.white70,
-      ), // Updated this line
+      ),
     ];
 
     return Column(
@@ -168,7 +173,8 @@ class _CourseInfoState extends State<CourseInfo> {
               .snapshots(),
       builder: (context, snapshot) {
         // Only show loading if we're waiting AND don't have any data yet
-        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
           return Column(
             children: [
               SizedBox(height: height * 0.15),
@@ -267,7 +273,8 @@ class _CourseInfoState extends State<CourseInfo> {
               .snapshots(),
       builder: (context, snapshot) {
         // Only show loading if we're waiting AND don't have any data yet
-        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
           return _buildLoadingText(height);
         }
 

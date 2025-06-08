@@ -57,7 +57,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     if (context.mounted) {
                       Navigator.pushReplacement(
                         context,
-                        MaterialPageRoute(builder: (context) => const StartingPage()),
+                        MaterialPageRoute(
+                          builder: (context) => const StartingPage(),
+                        ),
                       );
                     }
                   },
@@ -97,38 +99,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showDeleteAccountDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        title: Text(
-          'Delete Account',
-          style: GoogleFonts.poppins(color: Colors.white),
-        ),
-        content: Text(
-          'Are you sure you want to delete your account? This will permanently delete:\n\n'
-          '• Your account and profile\n'
-          '• All your courses\n'
-          '• All components and records\n'
-          '• All grading systems\n\n'
-          'This action cannot be undone.',
-          style: GoogleFonts.poppins(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              'Cancel',
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: Colors.grey[900],
+            title: Text(
+              'Delete Account',
+              style: GoogleFonts.poppins(color: Colors.white),
+            ),
+            content: Text(
+              'Are you sure you want to delete your account? This will permanently delete:\n\n'
+              '• Your account and profile\n'
+              '• All your courses\n'
+              '• All components and records\n'
+              '• All grading systems\n\n'
+              'This action cannot be undone.',
               style: GoogleFonts.poppins(color: Colors.white70),
             ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(
+                  'Cancel',
+                  style: GoogleFonts.poppins(color: Colors.white70),
+                ),
+              ),
+              TextButton(
+                onPressed: _handleDeleteAccount,
+                child: Text(
+                  'Delete Account',
+                  style: GoogleFonts.poppins(color: Colors.red),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: _handleDeleteAccount,
-            child: Text(
-              'Delete Account',
-              style: GoogleFonts.poppins(color: Colors.red),
-            ),
-          ),
-        ],
-      ),
     );
   }
 

@@ -4,16 +4,20 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:gradecalculator/components/custom_text_form_field.dart';
 import 'package:gradecalculator/components/mainscaffold.dart';
+import 'package:gradecalculator/models/components.dart';
 import 'package:gradecalculator/models/course.dart';
 import 'package:gradecalculator/models/grade_range.dart';
 import 'package:gradecalculator/models/grading_system.dart';
+import 'package:gradecalculator/providers/course_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:gradecalculator/providers/auth_provider.dart';
 import 'package:gradecalculator/components/customsnackbar.dart'; // Add this import
 import 'package:dropdown_button2/dropdown_button2.dart'; // Add this import
 
 class AddCourse extends StatefulWidget {
-  const AddCourse({super.key});
+  final Course? courseToEdit; // Add this parameter
+
+  const AddCourse({super.key, this.courseToEdit}); // Update constructor
 
   @override
   State<AddCourse> createState() => _AddCourseState();
@@ -21,7 +25,11 @@ class AddCourse extends StatefulWidget {
 
 class _AddCourseState extends State<AddCourse> {
   // Constants
-  static const List<String> _semesters = ['1st Semester', '2nd Semester', 'Midyear'];
+  static const List<String> _semesters = [
+    '1st Semester',
+    '2nd Semester',
+    'Midyear',
+  ];
   static const Duration _saveTimeout = Duration(seconds: 10);
 
   // Course form data
@@ -43,7 +51,11 @@ class _AddCourseState extends State<AddCourse> {
   @override
   void initState() {
     super.initState();
-    _addGradeRange();
+    if (isEditMode) {
+      _loadExistingData(); // Load existing course data
+    } else {
+      _addGradeRange(); // Add initial grade range for new course
+    }
   }
 
   @override
@@ -63,7 +75,7 @@ class _AddCourseState extends State<AddCourse> {
       ..._maxControllers.values,
       ..._gradeControllers.values,
     ];
-    
+
     for (final controller in controllers) {
       controller.dispose();
     }
@@ -75,7 +87,9 @@ class _AddCourseState extends State<AddCourse> {
       final min = _minControllers[range.rangeId]?.text ?? '';
       final max = _maxControllers[range.rangeId]?.text ?? '';
       final grade = _gradeControllers[range.rangeId]?.text ?? '';
-      print('RangeId: ${range.rangeId} | Min: $min | Max: $max | Grade: $grade');
+      print(
+        'RangeId: ${range.rangeId} | Min: $min | Max: $max | Grade: $grade',
+      );
     }
     print('----------------------------');
   }
@@ -90,7 +104,7 @@ class _AddCourseState extends State<AddCourse> {
         max: 100,
         grade: 0.0,
       );
-      
+
       _gradeRanges.add(newRange);
       _minControllers[rangeId] = TextEditingController();
       _maxControllers[rangeId] = TextEditingController();
@@ -102,7 +116,7 @@ class _AddCourseState extends State<AddCourse> {
   void _removeGradeRange(int index) {
     setState(() {
       final rangeId = _gradeRanges[index].rangeId;
-      
+
       // Dispose and remove controllers
       _minControllers[rangeId]?.dispose();
       _maxControllers[rangeId]?.dispose();
@@ -110,22 +124,37 @@ class _AddCourseState extends State<AddCourse> {
       _minControllers.remove(rangeId);
       _maxControllers.remove(rangeId);
       _gradeControllers.remove(rangeId);
-      
+
       _gradeRanges.removeAt(index);
       _printGradeRangesDebug();
     });
   }
 
   Course _createCourse(String courseId, String userId) {
-    final updatedGradeRanges = _gradeRanges
-        .map((range) => GradeRange(
-              rangeId: range.rangeId,
-              gradingSystemId: courseId,
-              min: int.tryParse(_minControllers[range.rangeId]?.text ?? '') ?? 0,
-              max: int.tryParse(_maxControllers[range.rangeId]?.text ?? '') ?? 0,
-              grade: double.tryParse(_gradeControllers[range.rangeId]?.text ?? '') ?? 0.0,
-            ))
-        .toList();
+    final updatedGradeRanges =
+        _gradeRanges
+            .map(
+              (range) => GradeRange(
+                rangeId: range.rangeId,
+                gradingSystemId: courseId,
+                min:
+                    double.tryParse(
+                      _minControllers[range.rangeId]?.text ?? '',
+                    ) ??
+                    0.0, // Changed to double.tryParse
+                max:
+                    double.tryParse(
+                      _maxControllers[range.rangeId]?.text ?? '',
+                    ) ??
+                    0.0, // Changed to double.tryParse
+                grade:
+                    double.tryParse(
+                      _gradeControllers[range.rangeId]?.text ?? '',
+                    ) ??
+                    0.0,
+              ),
+            )
+            .toList();
 
     final gradingSystem = GradingSystem(
       gradingSystemId: courseId,
@@ -147,19 +176,116 @@ class _AddCourseState extends State<AddCourse> {
     );
   }
 
+  bool get isEditMode => widget.courseToEdit != null; // Helper getter
+
+  // Add this method to load existing course data
+  void _loadExistingData() {
+    final course = widget.courseToEdit!;
+
+    // Populate course fields
+    _courseCodeController.text = course.courseCode;
+    _courseNameController.text = course.courseName;
+    _academicYearController.text = course.academicYear;
+    _unitsController.text = course.units;
+    _instructorController.text = course.instructor!;
+    selectedSemester = course.semester;
+
+    // Load existing grade ranges
+    setState(() {
+      _gradeRanges.clear();
+      _minControllers.clear();
+      _maxControllers.clear();
+      _gradeControllers.clear();
+
+      if (course.gradingSystem.gradeRanges.isEmpty) {
+        _addGradeRange();
+      } else {
+        for (final range in course.gradingSystem.gradeRanges) {
+          _gradeRanges.add(range);
+          _minControllers[range.rangeId] = TextEditingController(
+            text: range.min.toString(),
+          );
+          _maxControllers[range.rangeId] = TextEditingController(
+            text: range.max.toString(),
+          );
+          _gradeControllers[range.rangeId] = TextEditingController(
+            text: range.grade.toString(),
+          );
+        }
+      }
+    });
+  }
+
+  // Update the save method to handle both add and edit
   Future<void> _saveCourseToFirestore() async {
+    try {
+      if (isEditMode) {
+        await _updateExistingCourse();
+      } else {
+        await _createNewCourse();
+      }
+    } catch (e) {
+      print("Error saving course: $e");
+    }
+  }
+
+  Future<void> _createNewCourse() async {
     final docRef = FirebaseFirestore.instance.collection('courses').doc();
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final userId = authProvider.appUser?.userId ?? '';
     final course = _createCourse(docRef.id, userId);
 
+    await docRef.set(course.toMap()).timeout(_saveTimeout);
+    print("Course saved successfully online!");
+  }
+
+  Future<void> _updateExistingCourse() async {
+    final existingCourse = widget.courseToEdit!;
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final userId = authProvider.appUser?.userId ?? '';
+    final updatedCourse = _createCourse(existingCourse.courseId, userId);
+
+    await FirebaseFirestore.instance
+        .collection('courses')
+        .doc(existingCourse.courseId)
+        .update(updatedCourse.toMap())
+        .timeout(_saveTimeout);
+    
+    // IMPORTANT: Recalculate grades after updating grading system
+    await _recalculateGradesAfterEdit(existingCourse.courseId);
+    
+    print("Course updated successfully online!");
+  }
+
+  // Add this method to recalculate grades after editing
+  Future<void> _recalculateGradesAfterEdit(String courseId) async {
     try {
-      await docRef.set(course.toMap()).timeout(_saveTimeout);
-      print("Course saved successfully online!");
-    } on TimeoutException {
-      print("Save timed out - data cached offline");
+      // Get the course provider to handle grade recalculation
+      final courseProvider = Provider.of<CourseProvider>(context, listen: false);
+      
+      // Load the updated course with new grading system
+      final updatedCourseDoc = await FirebaseFirestore.instance
+          .collection('courses')
+          .doc(courseId)
+          .get()
+          .timeout(_saveTimeout);
+      
+      if (updatedCourseDoc.exists) {
+        final updatedCourse = Course.fromMap(updatedCourseDoc.data()!);
+        
+        // IMPORTANT: Load components first before calculating grades
+        final components = await courseProvider.loadCourseComponents(courseId);
+        
+        // Set the course as selected with the loaded components
+        courseProvider.selectCourse(updatedCourse);
+        
+        // Now trigger grade recalculation with the loaded components
+        await courseProvider.updateCourseGrade(components: components.cast<Component?>());
+        
+        print("Grades recalculated with updated grading system and ${components.length} components!");
+      }
     } catch (e) {
-      print("Save completed (offline mode): $e");
+      print("Error recalculating grades after course edit: $e");
     }
   }
 
@@ -267,7 +393,7 @@ class _AddCourseState extends State<AddCourse> {
           color: Colors.white,
         ),
         children: [
-          const TextSpan(text: "ADD A  "),
+          TextSpan(text: isEditMode ? "EDIT " : "ADD A  "),
           TextSpan(
             text: "COURSE.",
             style: GoogleFonts.poppins(
@@ -298,16 +424,10 @@ class _AddCourseState extends State<AddCourse> {
         ),
         SizedBox(height: height * 0.015),
         CustField(
-          label: "Course Name",
+          label: "Course Name (optional)",
           icon: Icons.menu_book,
           hintText: "Mobile Programming",
           controller: _courseNameController,
-          validator: (value) {
-            if (value == null || value.trim().isEmpty) {
-              return 'Course name is required';
-            }
-            return null;
-          },
         ),
         SizedBox(height: height * 0.015),
         CustField(
@@ -410,18 +530,21 @@ class _AddCourseState extends State<AddCourse> {
               fontSize: height * 0.018,
             ),
           ),
-          items: _semesters
-              .map((semester) => DropdownMenuItem<String>(
-                    value: semester,
-                    child: Text(
-                      semester,
-                      style: GoogleFonts.poppins(
-                        color: Colors.black87,
-                        fontSize: height * 0.018,
+          items:
+              _semesters
+                  .map(
+                    (semester) => DropdownMenuItem<String>(
+                      value: semester,
+                      child: Text(
+                        semester,
+                        style: GoogleFonts.poppins(
+                          color: Colors.black87,
+                          fontSize: height * 0.018,
+                        ),
                       ),
                     ),
-                  ))
-              .toList(),
+                  )
+                  .toList(),
           onChanged: (newValue) => setState(() => selectedSemester = newValue),
           validator: (value) {
             if (value == null || value.isEmpty) {
@@ -480,7 +603,7 @@ class _AddCourseState extends State<AddCourse> {
 
   Widget _buildGradingTableHeader(double height) {
     const headers = ["From", "To", "Grade"];
-    
+
     return Container(
       padding: EdgeInsets.all(height * 0.015),
       decoration: const BoxDecoration(
@@ -492,18 +615,20 @@ class _AddCourseState extends State<AddCourse> {
       ),
       child: Row(
         children: [
-          ...headers.map((header) => Expanded(
-                flex: 2,
-                child: Text(
-                  header,
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: height * 0.018,
-                  ),
-                  textAlign: TextAlign.center,
+          ...headers.map(
+            (header) => Expanded(
+              flex: 2,
+              child: Text(
+                header,
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: height * 0.018,
                 ),
-              )),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
           SizedBox(width: height * 0.05),
         ],
       ),
@@ -521,8 +646,9 @@ class _AddCourseState extends State<AddCourse> {
       ),
       child: Column(
         children: [
-          ..._gradeRanges.asMap().entries.map((entry) =>
-              _buildGradeRangeRow(entry.value, entry.key, height)),
+          ..._gradeRanges.asMap().entries.map(
+            (entry) => _buildGradeRangeRow(entry.value, entry.key, height),
+          ),
           _buildAddButton(height),
         ],
       ),
@@ -575,9 +701,9 @@ class _AddCourseState extends State<AddCourse> {
   }) {
     return TextFormField(
       controller: controller,
-      keyboardType: isDecimal
-          ? const TextInputType.numberWithOptions(decimal: true)
-          : TextInputType.number,
+      keyboardType: const TextInputType.numberWithOptions(
+        decimal: true,
+      ), // Allow decimals for all fields
       textAlign: TextAlign.center,
       style: GoogleFonts.poppins(fontSize: height * 0.018),
       decoration: InputDecoration(
@@ -612,16 +738,17 @@ class _AddCourseState extends State<AddCourse> {
   Widget _buildDeleteButton(int index, double height) {
     return SizedBox(
       width: height * 0.05,
-      child: _gradeRanges.length > 1
-          ? IconButton(
-              onPressed: () => _removeGradeRange(index),
-              icon: Icon(
-                Icons.delete,
-                color: const Color(0xFFCF6C79),
-                size: height * 0.025,
-              ),
-            )
-          : const SizedBox(),
+      child:
+          _gradeRanges.length > 1
+              ? IconButton(
+                onPressed: () => _removeGradeRange(index),
+                icon: Icon(
+                  Icons.delete,
+                  color: const Color(0xFFCF6C79),
+                  size: height * 0.025,
+                ),
+              )
+              : const SizedBox(),
     );
   }
 
@@ -658,7 +785,7 @@ class _AddCourseState extends State<AddCourse> {
             ),
           ),
           child: Text(
-            "Add Course",
+            isEditMode ? "Update Course" : "Add Course",
             style: GoogleFonts.poppins(
               fontSize: size.height * 0.020,
               color: Colors.white,

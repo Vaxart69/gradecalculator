@@ -30,16 +30,16 @@ void main() async {
   );
 
   // Initialize Firebase first
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   // REPLACE this line:
   // await FirebaseFirestore.instance.enablePersistence();
-  
+
   // WITH this (for Apple and Android):
-  FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: true);
-  
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+  );
+
   runApp(
     MultiProvider(
       providers: [

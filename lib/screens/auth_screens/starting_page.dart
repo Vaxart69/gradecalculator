@@ -48,23 +48,21 @@ class _StartingPageState extends State<StartingPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-
-                      
                       SizedBox(height: size.height * 0.15),
                       // Add the logo above the "Track. Calculate. Predict." text
                       Center(
                         child: Image.asset(
-                          'assets/logo.png',
-                          height: size.height * 0.3,
-                        )
-                        .animate(target: _startAnimation ? 1 : 0)
-                        .fadeIn(duration: 350.ms, delay: 300.ms)
-                        .slideY(
-                          begin: 0.3,
-                          end: 0,
-                          duration: 350.ms,
-                          curve: Curves.easeOut,
-                        ),
+                              'assets/logo.png',
+                              height: size.height * 0.3,
+                            )
+                            .animate(target: _startAnimation ? 1 : 0)
+                            .fadeIn(duration: 350.ms, delay: 300.ms)
+                            .slideY(
+                              begin: 0.3,
+                              end: 0,
+                              duration: 350.ms,
+                              curve: Curves.easeOut,
+                            ),
                       ),
                       SizedBox(height: size.height * 0.01),
                       Center(
@@ -196,7 +194,10 @@ class _StartingPageState extends State<StartingPage> {
                       child: ElevatedButton(
                         onPressed: () async {
                           try {
-                            final result = await context.read<AuthProvider>().signInWithGoogle();
+                            final result =
+                                await context
+                                    .read<AuthProvider>()
+                                    .signInWithGoogle();
 
                             if (mounted) {
                               if (result == null) {
@@ -204,13 +205,26 @@ class _StartingPageState extends State<StartingPage> {
                                 Navigator.pushReplacement(
                                   context,
                                   PageRouteBuilder(
-                                    pageBuilder: (context, animation, secondaryAnimation) => const MainScaffold(),
-                                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                    pageBuilder:
+                                        (
+                                          context,
+                                          animation,
+                                          secondaryAnimation,
+                                        ) => const MainScaffold(),
+                                    transitionsBuilder: (
+                                      context,
+                                      animation,
+                                      secondaryAnimation,
+                                      child,
+                                    ) {
                                       const begin = Offset(1.0, 0.0);
                                       const end = Offset.zero;
                                       const curve = Curves.easeInOut;
 
-                                      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                                      var tween = Tween(
+                                        begin: begin,
+                                        end: end,
+                                      ).chain(CurveTween(curve: curve));
 
                                       return SlideTransition(
                                         position: animation.drive(tween),

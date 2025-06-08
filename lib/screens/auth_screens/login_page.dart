@@ -17,7 +17,7 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  
+
   bool _isPasswordVisible = false; // Add this
 
   @override
@@ -30,7 +30,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final height = MediaQuery.of(context).size.height;
-   
+
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: true,
@@ -90,7 +90,9 @@ class _LoginPageState extends State<LoginPage> {
                     },
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                        _isPasswordVisible
+                            ? Icons.visibility
+                            : Icons.visibility_off,
                         color: Colors.white70,
                       ),
                       onPressed: () {
@@ -102,8 +104,6 @@ class _LoginPageState extends State<LoginPage> {
                   ),
 
                   SizedBox(height: size.height * 0.02),
-
-                  
 
                   SizedBox(height: size.height * 0.06),
 
@@ -123,9 +123,10 @@ class _LoginPageState extends State<LoginPage> {
                         showDialog(
                           context: context,
                           barrierDismissible: false,
-                          builder: (context) => const Center(
-                            child: CircularProgressIndicator(),
-                          ),
+                          builder:
+                              (context) => const Center(
+                                child: CircularProgressIndicator(),
+                              ),
                         );
 
                         String? result = await context
@@ -145,15 +146,23 @@ class _LoginPageState extends State<LoginPage> {
                           Navigator.pushReplacement(
                             context,
                             PageRouteBuilder(
-                              pageBuilder: (context, animation, secondaryAnimation) =>
-                                  const MainScaffold(),
-                              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                              pageBuilder:
+                                  (context, animation, secondaryAnimation) =>
+                                      const MainScaffold(),
+                              transitionsBuilder: (
+                                context,
+                                animation,
+                                secondaryAnimation,
+                                child,
+                              ) {
                                 const begin = Offset(1.0, 0.0);
                                 const end = Offset.zero;
                                 const curve = Curves.easeInOut;
 
-                                var tween = Tween(begin: begin, end: end)
-                                    .chain(CurveTween(curve: curve));
+                                var tween = Tween(
+                                  begin: begin,
+                                  end: end,
+                                ).chain(CurveTween(curve: curve));
 
                                 return SlideTransition(
                                   position: animation.drive(tween),

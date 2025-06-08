@@ -23,9 +23,9 @@ class AuthProvider with ChangeNotifier {
     _authApi.getUser().listen((user) async {
       _isLoading = true;
       notifyListeners();
-      
+
       _firebaseUser = user; // Add this line - you were missing this!
-      
+
       if (user != null) {
         _appUser = await _authApi.getUserInfo(user.uid);
       } else {
@@ -132,30 +132,33 @@ class AuthProvider with ChangeNotifier {
 
     try {
       // Step 1: Get all courses for this user
-      final coursesSnapshot = await FirebaseFirestore.instance
-          .collection('courses')
-          .where('userId', isEqualTo: userId)
-          .get();
+      final coursesSnapshot =
+          await FirebaseFirestore.instance
+              .collection('courses')
+              .where('userId', isEqualTo: userId)
+              .get();
 
       // Step 2: For each course, delete components and records
       for (final courseDoc in coursesSnapshot.docs) {
         final courseId = courseDoc.id;
 
         // Get all components for this course
-        final componentsSnapshot = await FirebaseFirestore.instance
-            .collection('components')
-            .where('courseId', isEqualTo: courseId)
-            .get();
+        final componentsSnapshot =
+            await FirebaseFirestore.instance
+                .collection('components')
+                .where('courseId', isEqualTo: courseId)
+                .get();
 
         // For each component, delete all its records
         for (final componentDoc in componentsSnapshot.docs) {
           final componentId = componentDoc.id;
 
           // Get all records for this component
-          final recordsSnapshot = await FirebaseFirestore.instance
-              .collection('records')
-              .where('componentId', isEqualTo: componentId)
-              .get();
+          final recordsSnapshot =
+              await FirebaseFirestore.instance
+                  .collection('records')
+                  .where('componentId', isEqualTo: componentId)
+                  .get();
 
           // Delete all records
           for (final recordDoc in recordsSnapshot.docs) {
@@ -172,7 +175,8 @@ class AuthProvider with ChangeNotifier {
 
       // Step 3: Delete the user document
       batch.delete(
-          FirebaseFirestore.instance.collection('appusers').doc(userId));
+        FirebaseFirestore.instance.collection('appusers').doc(userId),
+      );
 
       // Execute all deletes
       await batch.commit();
@@ -185,32 +189,35 @@ class AuthProvider with ChangeNotifier {
   Future<String?> signInWithGoogle() async {
     try {
       final GoogleSignIn googleSignIn = GoogleSignIn();
-      
+
       // Force account selection by signing out first
       await googleSignIn.signOut();
-      
+
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-      
+
       if (googleUser == null) {
         return "Sign-in cancelled by user";
       }
 
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
 
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      final UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      final UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithCredential(credential);
       _firebaseUser = userCredential.user;
 
       if (_firebaseUser != null) {
         // Check if user exists in Firestore, if not create one
-        final userDoc = await FirebaseFirestore.instance
-            .collection('appusers')
-            .doc(_firebaseUser!.uid)
-            .get();
+        final userDoc =
+            await FirebaseFirestore.instance
+                .collection('appusers')
+                .doc(_firebaseUser!.uid)
+                .get();
 
         if (!userDoc.exists) {
           // Create new user document
@@ -236,7 +243,7 @@ class AuthProvider with ChangeNotifier {
         notifyListeners();
         return null; // Success
       }
-      
+
       return "Failed to sign in with Google";
     } catch (e) {
       return "Error: $e";
